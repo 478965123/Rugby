@@ -27,7 +27,7 @@ interface PaymentRecord {
   amount: number
   paymentType: "yearly" | "termly"
   paymentMethod: string
-  paymentChannel: "credit_card" | "wechat_pay" | "alipay" | "qr_payment" | "counter_bank"
+  paymentChannel: "credit_card" | "qr_payment" | "counter_bank"
   payerName: string
   status: "paid" | "partial" | "unpaid" | "cancelled" | "overdue"
   transactionDate: Date
@@ -44,8 +44,8 @@ const generateMockPayments = (): PaymentRecord[] => {
   const rooms = ["A", "B", "C", "D", "E", "F", "G", "H"]
   const firstNames = ["John", "Sarah", "Mike", "Lisa", "David", "Emma", "James", "Sophia", "William", "Olivia", "Benjamin", "Ava", "Lucas", "Isabella", "Henry", "Mia", "Alexander", "Charlotte", "Mason", "Amelia", "Ethan", "Harper", "Daniel", "Evelyn", "Matthew", "Abigail", "Jackson", "Emily", "Sebastian", "Elizabeth", "Jack", "Sofia", "Aiden", "Avery", "Owen", "Ella", "Samuel", "Madison", "Gabriel", "Scarlett", "Carter", "Victoria", "Wyatt", "Aria", "Jayden", "Grace", "John", "Chloe", "Luke", "Camila", "Anthony", "Penelope", "Isaac", "Riley"]
   const lastNames = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin", "Lee", "Perez", "Thompson", "White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson", "Walker", "Young", "Allen", "King", "Wright", "Scott", "Torres", "Nguyen", "Hill", "Flores", "Green", "Adams", "Nelson", "Baker", "Hall", "Rivera", "Campbell", "Mitchell", "Carter", "Roberts"]
-  const paymentMethods = ["Credit Card", "PromptPay", "Bank Counter", "WeChat Pay", "Bank Transfer", "Cash"]
-  const paymentChannels: ("credit_card" | "wechat_pay" | "alipay" | "qr_payment" | "counter_bank")[] = ["credit_card", "wechat_pay", "alipay", "qr_payment", "counter_bank"]
+  const paymentMethods = ["Credit Card", "PromptPay", "Bank Counter", "Bank Transfer", "Cash"]
+  const paymentChannels: ("credit_card" | "qr_payment" | "counter_bank")[] = ["credit_card", "qr_payment", "counter_bank"]
   const payerNames = ["Mr. John Smith", "Mrs. Sarah Johnson", "Mr. David Williams", "Ms. Emily Brown", "Mr. Michael Davis", "Mrs. Lisa Garcia", "Mr. James Wilson", "Ms. Maria Rodriguez"]
   const statuses: ("paid" | "partial" | "unpaid" | "cancelled" | "overdue")[] = ["paid", "paid", "paid", "partial", "unpaid", "cancelled", "overdue"]
 
@@ -322,7 +322,16 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
   }
 
   // Get unique grades and rooms for filter dropdown
-  const uniqueGrades = Array.from(new Set(payments.map(payment => payment.studentGrade))).sort()
+  const uniqueGrades = Array.from(new Set(payments.map(payment => payment.studentGrade))).sort((a, b) => {
+    // Handle Reception first
+    if (a === "Reception") return -1
+    if (b === "Reception") return 1
+
+    // Extract year numbers and compare numerically
+    const yearA = parseInt(a.replace("Year ", ""))
+    const yearB = parseInt(b.replace("Year ", ""))
+    return yearA - yearB
+  })
   const uniqueRooms = Array.from(new Set(payments.map(payment => payment.studentRoom))).sort()
 
   // Pagination calculations

@@ -73,7 +73,6 @@ import { SummerActivitiesReceipts } from "./components/SummerActivitiesReceiptsU
 import { InvoiceManagement } from "./components/InvoiceManagement"
 import { InvoiceCreation } from "./components/InvoiceCreation"
 import { ItemManagement } from "./components/ItemManagement"
-import { EmailJobsManagement } from "./components/EmailJobsManagement"
 import { EmailHistoryView } from "./components/EmailHistoryView"
 import { EmailCsvExport } from "./components/EmailCsvExport"
 
@@ -88,32 +87,6 @@ const menuItems = {
     { id: "debt-reminder-settings", labelKey: "menu.debtReminders", icon: Bell },
     { id: "payment-history", labelKey: "menu.paymentHistory", icon: CreditCard },
     { id: "tuition-invoice-management", labelKey: "menu.transactionManagement", icon: FileText },
-  ],
-  afterSchool: [
-    { id: "afterschool-dashboard", labelKey: "menu.dashboard", icon: BarChart3 },
-    { id: "afterschool-settings", labelKey: "menu.registrationSettings", icon: Settings },
-    { id: "afterschool-payment-history", labelKey: "menu.paymentHistory", icon: CreditCard },
-    { id: "course-quota-overview", labelKey: "menu.courseQuota", icon: GraduationCap },
-    { id: "afterschool-receipts", labelKey: "menu.receipts", icon: Receipt },
-  ],
-  eventManagement: [
-    { id: "event-import", labelKey: "menu.eventImport", icon: Upload },
-    { id: "event-payment-deadline", labelKey: "menu.paymentDeadline", icon: Clock },
-    { id: "event-registration-reports", labelKey: "menu.registrationReports", icon: FileBarChart },
-    { id: "external-parent-management", labelKey: "menu.externalParents", icon: UserCheck },
-    { id: "event-receipts", labelKey: "menu.receipts", icon: Receipt },
-  ],
-  summerActivities: [
-    { id: "summer-activities-import", labelKey: "menu.summerActivitiesImport", icon: Upload },
-    { id: "summer-registration-control", labelKey: "menu.registrationControl", icon: Play },
-    { id: "summer-payment-reports", labelKey: "menu.paymentReports", icon: DollarSign },
-    { id: "summer-activities-receipts", labelKey: "menu.receipts", icon: Receipt },
-  ],
-  invoiceManagement: [
-    { id: "invoice-management", labelKey: "menu.invoices", icon: FileInvoice },
-  ],
-  emailNotifications: [
-    { id: "email-jobs", labelKey: "menu.emailJobs", icon: Mail },
   ],
   userManagement: [
     { id: "user-management", labelKey: "menu.userManagement", icon: Users },
@@ -210,38 +183,6 @@ export default function App() {
         return <PaymentHistory />
       case "tuition-invoice-management":
         return <TuitionInvoiceManagement />
-      case "afterschool-dashboard":
-        return <AfterSchoolDashboard />
-      case "afterschool-settings":
-        return <AfterSchoolSettings onSaveComplete={() => setActiveSection("course-quota-overview")} />
-      case "afterschool-payment-history":
-        return <PaymentHistory type="afterschool" />
-      case "course-quota-overview":
-        return <CourseQuotaOverview onNavigateToSubPage={navigateToSubPage} />
-      case "course-student-report":
-        return <CourseStudentReport />
-      case "external-parent-management":
-        return <ExternalParentManagement />
-      case "afterschool-receipts":
-        return <AfterSchoolReceipts />
-      case "event-import":
-        return <EventImport />
-      case "event-payment-deadline":
-        return <EventPaymentDeadline />
-      case "event-registration-reports":
-        return <EventRegistrationReports />
-      case "event-receipts":
-        return <EventReceipts />
-      case "summer-activities-import":
-        return <SummerActivitiesImport />
-      case "summer-registration-control":
-        return <SummerRegistrationControl />
-      case "summer-payment-reports":
-        return <SummerPaymentReports />
-      case "summer-activities-receipts":
-        return <SummerActivitiesReceipts />
-      case "invoice-management":
-        return <InvoiceManagement onNavigateToSubPage={navigateToSubPage} onNavigateToView={navigateToViewDetails} />
       case "invoice-creation":
         return <InvoiceCreation 
           defaultCategory={subPageParams?.defaultCategory}
@@ -249,8 +190,6 @@ export default function App() {
         />
       case "item-management":
         return <ItemManagement onNavigateToSubPage={navigateToSubPage} onNavigateToView={navigateToViewDetails} />
-      case "email-jobs":
-        return <EmailJobsManagement onNavigateToSubPage={navigateToSubPage} />
       case "email-history-view":
         return <EmailHistoryView jobData={subPageParams?.job} onBack={navigateBack} />
       case "email-csv-export":
@@ -310,106 +249,6 @@ export default function App() {
             </SidebarGroup>
 
             <SidebarGroup>
-              <SidebarGroupLabel>{t('sidebar.afterSchool')}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {menuItems.afterSchool.map((item) => (
-                    <SidebarMenuItem key={item.id}>
-                      <SidebarMenuButton
-                        onClick={() => setActiveSection(item.id)}
-                        isActive={activeSection === item.id}
-                        className={activeSection === item.id ? "!bg-black !text-white !font-bold" : ""}
-                      >
-                        <item.icon className="w-4 h-4" />
-                        <span>{t(item.labelKey)}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-
-            <SidebarGroup>
-              <SidebarGroupLabel>{t('sidebar.eventManagement')}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {menuItems.eventManagement.map((item) => (
-                    <SidebarMenuItem key={item.id}>
-                      <SidebarMenuButton
-                        onClick={() => setActiveSection(item.id)}
-                        isActive={activeSection === item.id}
-                        className={activeSection === item.id ? "!bg-black !text-white !font-bold" : ""}
-                      >
-                        <item.icon className="w-4 h-4" />
-                        <span>{t(item.labelKey)}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-
-            <SidebarGroup>
-              <SidebarGroupLabel>{t('sidebar.summerActivities')}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {menuItems.summerActivities.map((item) => (
-                    <SidebarMenuItem key={item.id}>
-                      <SidebarMenuButton
-                        onClick={() => setActiveSection(item.id)}
-                        isActive={activeSection === item.id}
-                        className={activeSection === item.id ? "!bg-black !text-white !font-bold" : ""}
-                      >
-                        <item.icon className="w-4 h-4" />
-                        <span>{t(item.labelKey)}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-
-            <SidebarGroup>
-              <SidebarGroupLabel>{t('sidebar.invoiceManagement')}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {menuItems.invoiceManagement.map((item) => (
-                    <SidebarMenuItem key={item.id}>
-                      <SidebarMenuButton
-                        onClick={() => setActiveSection(item.id)}
-                        isActive={activeSection === item.id}
-                        className={activeSection === item.id ? "!bg-black !text-white !font-bold" : ""}
-                      >
-                        <item.icon className="w-4 h-4" />
-                        <span>{t(item.labelKey)}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-
-            <SidebarGroup>
-              <SidebarGroupLabel>{t('sidebar.emailNotifications')}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {menuItems.emailNotifications.map((item) => (
-                    <SidebarMenuItem key={item.id}>
-                      <SidebarMenuButton
-                        onClick={() => setActiveSection(item.id)}
-                        isActive={activeSection === item.id}
-                        className={activeSection === item.id ? "!bg-black !text-white !font-bold" : ""}
-                      >
-                        <item.icon className="w-4 h-4" />
-                        <span>{t(item.labelKey)}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-
-            <SidebarGroup>
               <SidebarGroupLabel>{t('sidebar.userManagement')}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
@@ -450,11 +289,6 @@ export default function App() {
                 {(() => {
                   const menuItem =
                     menuItems.tuition.find(item => item.id === activeSection) ||
-                    menuItems.afterSchool.find(item => item.id === activeSection) ||
-                    menuItems.eventManagement.find(item => item.id === activeSection) ||
-                    menuItems.summerActivities.find(item => item.id === activeSection) ||
-                    menuItems.invoiceManagement.find(item => item.id === activeSection) ||
-                    menuItems.emailNotifications.find(item => item.id === activeSection) ||
                     menuItems.userManagement.find(item => item.id === activeSection)
 
                   if (menuItem) return t(menuItem.labelKey)
@@ -465,7 +299,6 @@ export default function App() {
                     if (subPageParams?.invoiceType === "trip") return t('pages.createTripInvoice')
                     return t('pages.createInvoice')
                   }
-                  if (activeSection === "email-jobs") return t('menu.emailJobs')
                   if (activeSection === "email-history-view") return t('pages.emailDeliveryHistory')
                   if (activeSection === "email-csv-export") return t('pages.exportEmailLogs')
                   if (activeSection === "view-details") {

@@ -31,7 +31,7 @@ const initialInternalEmails: InternalEmail[] = [
     id: "1",
     name: "Somchai",
     surname: "Jaidee",
-    email: "somchai.j@sisb.ac.th",
+    email: "somchai.j@rugby.ac.th",
     remark: "Finance Department Head",
     createdAt: new Date("2024-01-15")
   },
@@ -39,7 +39,7 @@ const initialInternalEmails: InternalEmail[] = [
     id: "2",
     name: "Malee",
     surname: "Kaewmanee",
-    email: "malee.k@sisb.ac.th",
+    email: "malee.k@rugby.ac.th",
     remark: "Accounting Manager",
     createdAt: new Date("2024-02-10")
   },
@@ -47,7 +47,7 @@ const initialInternalEmails: InternalEmail[] = [
     id: "3",
     name: "Prasert",
     surname: "Suksamran",
-    email: "prasert.s@sisb.ac.th",
+    email: "prasert.s@rugby.ac.th",
     remark: "IT Support",
     createdAt: new Date("2024-01-20")
   },
@@ -55,7 +55,7 @@ const initialInternalEmails: InternalEmail[] = [
     id: "4",
     name: "Niran",
     surname: "Thanakit",
-    email: "niran.t@sisb.ac.th",
+    email: "niran.t@rugby.ac.th",
     remark: "Academic Director",
     createdAt: new Date("2024-03-05")
   },
@@ -63,7 +63,7 @@ const initialInternalEmails: InternalEmail[] = [
     id: "5",
     name: "Siriporn",
     surname: "Wongsiri",
-    email: "siriporn.w@sisb.ac.th",
+    email: "siriporn.w@rugby.ac.th",
     remark: "Operations Manager",
     createdAt: new Date("2024-02-28")
   }

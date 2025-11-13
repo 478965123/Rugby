@@ -7,7 +7,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Badge } from "./ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog"
 import { Label } from "./ui/label"
-import { Switch } from "./ui/switch"
 import {
   Search,
   Filter,
@@ -16,13 +15,11 @@ import {
   Trash2,
   Eye,
   EyeOff,
-  Shield,
   Mail,
   Phone,
   Calendar,
   CheckCircle,
-  XCircle,
-  MapPin
+  XCircle
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -32,12 +29,11 @@ interface User {
   lastName: string
   email: string
   phone: string
+  username: string
   role: "admin" | "manager" | "staff" | "viewer"
   status: "active" | "inactive"
-  locations: string[]
   createdAt: Date
   lastLogin?: Date
-  permissions: string[]
 }
 
 const mockUsers: User[] = [
@@ -45,66 +41,61 @@ const mockUsers: User[] = [
     id: "1",
     firstName: "John",
     lastName: "Smith",
-    email: "john.smith@sisb.ac.th",
+    email: "john.smith@rugby.ac.th",
     phone: "+66 81 234 5678",
+    username: "john.smith",
     role: "admin",
     status: "active",
-    locations: ["PU", "SV", "TB", "CM", "NB", "RY"],
     createdAt: new Date("2024-01-15"),
-    lastLogin: new Date("2025-10-14T09:30:00"),
-    permissions: ["all"]
+    lastLogin: new Date("2025-10-14T09:30:00")
   },
   {
     id: "2",
     firstName: "Sarah",
     lastName: "Johnson",
-    email: "sarah.johnson@sisb.ac.th",
+    email: "sarah.johnson@rugby.ac.th",
     phone: "+66 82 345 6789",
+    username: "sarah.johnson",
     role: "manager",
     status: "active",
-    locations: ["PU", "SV", "TB"],
     createdAt: new Date("2024-02-20"),
-    lastLogin: new Date("2025-10-13T14:20:00"),
-    permissions: ["tuition", "afterschool", "events"]
+    lastLogin: new Date("2025-10-13T14:20:00")
   },
   {
     id: "3",
     firstName: "Michael",
     lastName: "Chen",
-    email: "michael.chen@sisb.ac.th",
+    email: "michael.chen@rugby.ac.th",
     phone: "+66 83 456 7890",
+    username: "michael.chen",
     role: "staff",
     status: "active",
-    locations: ["PU"],
     createdAt: new Date("2024-03-10"),
-    lastLogin: new Date("2025-10-14T08:15:00"),
-    permissions: ["tuition", "reports"]
+    lastLogin: new Date("2025-10-14T08:15:00")
   },
   {
     id: "4",
     firstName: "Emily",
     lastName: "Davis",
-    email: "emily.davis@sisb.ac.th",
+    email: "emily.davis@rugby.ac.th",
     phone: "+66 84 567 8901",
+    username: "emily.davis",
     role: "staff",
     status: "active",
-    locations: ["CM", "RY"],
     createdAt: new Date("2024-04-05"),
-    lastLogin: new Date("2025-10-12T16:45:00"),
-    permissions: ["afterschool", "events"]
+    lastLogin: new Date("2025-10-12T16:45:00")
   },
   {
     id: "5",
     firstName: "David",
     lastName: "Wilson",
-    email: "david.wilson@sisb.ac.th",
+    email: "david.wilson@rugby.ac.th",
     phone: "+66 85 678 9012",
+    username: "david.wilson",
     role: "viewer",
     status: "inactive",
-    locations: ["NB"],
     createdAt: new Date("2024-05-12"),
-    lastLogin: new Date("2025-09-20T10:30:00"),
-    permissions: ["reports"]
+    lastLogin: new Date("2025-09-20T10:30:00")
   }
 ]
 
@@ -114,27 +105,6 @@ const roleLabels = {
   staff: "Staff",
   viewer: "Viewer"
 }
-
-const availableLocations = [
-  { id: "PU", label: "SISB Pracha Uthit", code: "PU" },
-  { id: "SV", label: "SISB Suvarnabhumi", code: "SV" },
-  { id: "TB", label: "SISB Thonburi", code: "TB" },
-  { id: "CM", label: "SISB Chiang Mai", code: "CM" },
-  { id: "NB", label: "SISB Nonthaburi", code: "NB" },
-  { id: "RY", label: "SISB Rayong", code: "RY" }
-]
-
-const availablePermissions = [
-  { id: "tuition", label: "Tuition Management" },
-  { id: "afterschool", label: "ECA & EAS" },
-  { id: "events", label: "Event Management" },
-  { id: "summer", label: "Summer Activities" },
-  { id: "invoice", label: "Invoice Management" },
-  { id: "email", label: "Email Notifications" },
-  { id: "reports", label: "Reports & Analytics" },
-  { id: "users", label: "User Management" },
-  { id: "all", label: "All Permissions" }
-]
 
 export function UserManagement() {
   const [users, setUsers] = useState<User[]>(mockUsers)
@@ -155,10 +125,10 @@ export function UserManagement() {
     lastName: "",
     email: "",
     phone: "",
+    username: "",
+    password: "",
     role: "staff" as User["role"],
-    status: "active" as User["status"],
-    locations: [] as string[],
-    permissions: [] as string[]
+    status: "active" as User["status"]
   })
 
   const applyFilters = () => {
@@ -218,10 +188,10 @@ export function UserManagement() {
       lastName: "",
       email: "",
       phone: "",
+      username: "",
+      password: "",
       role: "staff",
-      status: "active",
-      locations: [],
-      permissions: []
+      status: "active"
     })
     setIsCreateModalOpen(true)
   }
@@ -233,10 +203,10 @@ export function UserManagement() {
       lastName: user.lastName,
       email: user.email,
       phone: user.phone,
+      username: user.username,
+      password: "",
       role: user.role,
-      status: user.status,
-      locations: user.locations,
-      permissions: user.permissions
+      status: user.status
     })
     setIsEditModalOpen(true)
   }
@@ -253,12 +223,14 @@ export function UserManagement() {
       lastName: formData.lastName,
       email: formData.email,
       phone: formData.phone,
+      username: formData.username,
       role: formData.role,
       status: formData.status,
-      locations: formData.locations,
-      permissions: formData.permissions,
       createdAt: new Date()
     }
+
+    // In a real app, password would be hashed and sent to backend
+    console.log("Creating user with password:", formData.password)
 
     setUsers([...users, newUser])
     setFilteredUsers([...users, newUser])
@@ -277,13 +249,17 @@ export function UserManagement() {
             lastName: formData.lastName,
             email: formData.email,
             phone: formData.phone,
+            username: formData.username,
             role: formData.role,
-            status: formData.status,
-            locations: formData.locations,
-            permissions: formData.permissions
+            status: formData.status
           }
         : user
     )
+
+    // In a real app, password would be hashed and sent to backend if changed
+    if (formData.password) {
+      console.log("Updating password for user:", formData.username)
+    }
 
     setUsers(updatedUsers)
     setFilteredUsers(updatedUsers)
@@ -299,35 +275,6 @@ export function UserManagement() {
     setFilteredUsers(updatedUsers)
     setIsDeleteModalOpen(false)
     toast.success(`User ${selectedUser.firstName} ${selectedUser.lastName} deleted successfully`)
-  }
-
-  const toggleLocation = (locationId: string) => {
-    const newLocations = formData.locations.includes(locationId)
-      ? formData.locations.filter(l => l !== locationId)
-      : [...formData.locations, locationId]
-
-    setFormData({
-      ...formData,
-      locations: newLocations
-    })
-  }
-
-  const togglePermission = (permission: string) => {
-    if (permission === "all") {
-      setFormData({
-        ...formData,
-        permissions: formData.permissions.includes("all") ? [] : ["all"]
-      })
-    } else {
-      const newPermissions = formData.permissions.includes(permission)
-        ? formData.permissions.filter(p => p !== permission && p !== "all")
-        : [...formData.permissions.filter(p => p !== "all"), permission]
-
-      setFormData({
-        ...formData,
-        permissions: newPermissions
-      })
-    }
   }
 
   const summaryStats = {
@@ -479,7 +426,6 @@ export function UserManagement() {
               <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Contact</TableHead>
-                <TableHead>Location</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Last Login</TableHead>
@@ -503,18 +449,6 @@ export function UserManagement() {
                     <div className="text-sm flex items-center gap-1">
                       <Phone className="w-3 h-3" />
                       {user.phone}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {user.locations.map((locationId) => {
-                        const location = availableLocations.find(l => l.id === locationId)
-                        return location ? (
-                          <Badge key={locationId} variant="outline" className="text-xs">
-                            {location.code}
-                          </Badge>
-                        ) : null
-                      })}
                     </div>
                   </TableCell>
                   <TableCell>{getRoleBadge(user.role)}</TableCell>
@@ -574,7 +508,7 @@ export function UserManagement() {
               Add New User
             </DialogTitle>
             <DialogDescription>
-              Create a new user account with role and permissions
+              Create a new user account with role
             </DialogDescription>
           </DialogHeader>
 
@@ -607,7 +541,7 @@ export function UserManagement() {
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="john.smith@sisb.ac.th"
+                placeholder="john.smith@rugby.ac.th"
               />
             </div>
 
@@ -621,24 +555,25 @@ export function UserManagement() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                Location
-              </Label>
-              <div className="grid grid-cols-2 gap-2 border rounded-md p-4">
-                {availableLocations.map((location) => (
-                  <div key={location.id} className="flex items-center space-x-2">
-                    <Switch
-                      id={`create-location-${location.id}`}
-                      checked={formData.locations.includes(location.id)}
-                      onCheckedChange={() => toggleLocation(location.id)}
-                    />
-                    <Label htmlFor={`create-location-${location.id}`} className="cursor-pointer">
-                      {location.label} ({location.code})
-                    </Label>
-                  </div>
-                ))}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  placeholder="john.smith"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Enter password"
+                />
               </div>
             </div>
 
@@ -671,27 +606,6 @@ export function UserManagement() {
                 </Select>
               </div>
             </div>
-
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Shield className="w-4 h-4" />
-                Permissions
-              </Label>
-              <div className="grid grid-cols-2 gap-2 border rounded-md p-4">
-                {availablePermissions.map((permission) => (
-                  <div key={permission.id} className="flex items-center space-x-2">
-                    <Switch
-                      id={`create-${permission.id}`}
-                      checked={formData.permissions.includes(permission.id)}
-                      onCheckedChange={() => togglePermission(permission.id)}
-                    />
-                    <Label htmlFor={`create-${permission.id}`} className="cursor-pointer">
-                      {permission.label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
 
           <DialogFooter>
@@ -712,7 +626,7 @@ export function UserManagement() {
               Edit User
             </DialogTitle>
             <DialogDescription>
-              Update user information, role, and permissions
+              Update user information and role
             </DialogDescription>
           </DialogHeader>
 
@@ -755,24 +669,24 @@ export function UserManagement() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                Location
-              </Label>
-              <div className="grid grid-cols-2 gap-2 border rounded-md p-4">
-                {availableLocations.map((location) => (
-                  <div key={location.id} className="flex items-center space-x-2">
-                    <Switch
-                      id={`edit-location-${location.id}`}
-                      checked={formData.locations.includes(location.id)}
-                      onCheckedChange={() => toggleLocation(location.id)}
-                    />
-                    <Label htmlFor={`edit-location-${location.id}`} className="cursor-pointer">
-                      {location.label} ({location.code})
-                    </Label>
-                  </div>
-                ))}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-username">Username</Label>
+                <Input
+                  id="edit-username"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-password">Password</Label>
+                <Input
+                  id="edit-password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Leave blank to keep current"
+                />
               </div>
             </div>
 
@@ -803,27 +717,6 @@ export function UserManagement() {
                     <SelectItem value="inactive">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Shield className="w-4 h-4" />
-                Permissions
-              </Label>
-              <div className="grid grid-cols-2 gap-2 border rounded-md p-4">
-                {availablePermissions.map((permission) => (
-                  <div key={permission.id} className="flex items-center space-x-2">
-                    <Switch
-                      id={`edit-${permission.id}`}
-                      checked={formData.permissions.includes(permission.id)}
-                      onCheckedChange={() => togglePermission(permission.id)}
-                    />
-                    <Label htmlFor={`edit-${permission.id}`} className="cursor-pointer">
-                      {permission.label}
-                    </Label>
-                  </div>
-                ))}
               </div>
             </div>
           </div>

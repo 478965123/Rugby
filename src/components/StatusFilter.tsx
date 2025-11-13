@@ -4,7 +4,7 @@ import { Badge } from "./ui/badge"
 
 export type PaymentStatus = "paid" | "partial" | "unpaid" | "cancelled" | "overdue" | "all"
 
-export type PaymentChannel = "credit_card" | "wechat_pay" | "alipay" | "qr_payment" | "counter_bank" | "all"
+export type PaymentChannel = "credit_card" | "qr_payment" | "counter_bank" | "all"
 
 interface StatusFilterProps {
   selectedStatus: PaymentStatus
@@ -60,8 +60,6 @@ export function PaymentChannelFilter({ selectedChannel, onChannelChange }: Payme
   const channelOptions = [
     { value: "all" as PaymentChannel, label: t('paymentHistory.allChannels') },
     { value: "credit_card" as PaymentChannel, label: t('paymentHistory.paymentChannels.credit_card') },
-    { value: "wechat_pay" as PaymentChannel, label: t('paymentHistory.paymentChannels.wechat_pay') },
-    { value: "alipay" as PaymentChannel, label: t('paymentHistory.paymentChannels.alipay') },
     { value: "qr_payment" as PaymentChannel, label: t('paymentHistory.paymentChannels.qr_payment') },
     { value: "counter_bank" as PaymentChannel, label: t('paymentHistory.paymentChannels.counter_bank') }
   ]
@@ -141,8 +139,6 @@ export function getPaymentChannelLabel(channel: string, t?: any) {
     // Fallback English labels
     switch (key) {
       case "credit_card": return "Credit Card"
-      case "wechat_pay": return "WeChat Pay"
-      case "alipay": return "Alipay"
       case "qr_payment": return "QR Payment"
       case "counter_bank": return "Counter Bank"
       default: return channel
@@ -152,10 +148,6 @@ export function getPaymentChannelLabel(channel: string, t?: any) {
   switch (channelLower) {
     case "credit_card":
       return getLabel("credit_card")
-    case "wechat_pay":
-      return getLabel("wechat_pay")
-    case "alipay":
-      return getLabel("alipay")
     case "qr_payment":
       return getLabel("qr_payment")
     case "counter_bank":

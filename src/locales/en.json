@@ -22,11 +22,7 @@
   },
   "sidebar": {
     "tuitionManagement": "Tuition Management",
-    "afterSchool": "ECA & EAS",
-    "eventManagement": "Event Management",
-    "summerActivities": "Summer Activities",
     "discountManagement": "Discount Management",
-    "invoiceManagement": "Invoice Management",
     "emailNotifications": "Email Notifications",
     "userManagement": "User Management"
   },
@@ -38,27 +34,18 @@
     "transactionManagement": "Transaction Management",
     "registrationSettings": "Registration Settings",
     "courseQuota": "Course & Quota",
-    "externalParents": "External Parents",
     "receipts": "Receipts",
-    "eventImport": "Event Import",
-    "paymentDeadline": "Payment Deadline",
-    "registrationReports": "Registration Reports",
-    "summerActivitiesImport": "Summer Activities Import",
-    "registrationControl": "Registration Control",
-    "paymentReports": "Payment Reports",
     "discountOverview": "Discount Overview",
     "studentGroups": "Student Groups",
     "promotionalCampaigns": "Promotional Campaigns",
     "waiveFee": "Waive Fee",
     "discountReports": "Discount Reports",
-    "invoices": "Invoices",
     "itemsTemplates": "Items & Templates",
     "emailJobs": "Email Jobs",
     "userManagement": "User Management"
   },
   "pages": {
     "createTuitionInvoice": "Create Tuition Invoice",
-    "createECAInvoice": "Create ECA Invoice",
     "createTripInvoice": "Create Trip & Activities Invoice",
     "createInvoice": "Create Invoice",
     "emailDeliveryHistory": "Email Delivery History",
@@ -132,12 +119,13 @@
     "daysBefore": "days before start",
     "term1": "Term 1 (August - December)",
     "term2": "Term 2 (January - March)",
-    "term3": "Term 3 (April - July)"
+    "term3": "Term 3 (April - July)",
+    "saveSuccess": "Save Success",
+    "saveSuccessMessage": "All changes have been saved successfully."
   },
   "paymentHistory": {
     "title": {
-      "tuition": "Tuition Payment History",
-      "afterschool": "ECA & EAS Payment History"
+      "tuition": "Tuition Payment History"
     },
     "description": "View payment records and transaction details",
     "exportData": "Export Data",

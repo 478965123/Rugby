@@ -53,7 +53,7 @@ export function DebtReminderSettings() {
   const [reminders, setReminders] = useState<ReminderConfig[]>(initialReminders)
   const [globalSettings, setGlobalSettings] = useState({
     enableReminders: true,
-    fromEmail: "noreply@sisb.ac.th",
+    fromEmail: "noreply@rugby.ac.th",
     smsEnabled: false
   })
 
@@ -269,7 +269,7 @@ export function DebtReminderSettings() {
                       {/* Sample Footer */}
                       <div className="pt-3 mt-3 border-t text-xs text-muted-foreground">
                         <p>Best regards,</p>
-                        <p>SISB Accounting Department</p>
+                        <p>Rugby Accounting Department</p>
                         <p className="mt-2">This is an automated message. Please do not reply to this email.</p>
                       </div>
                     </div>

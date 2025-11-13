@@ -634,29 +634,38 @@ export function InvoiceOverview() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           variant="ghost"
-                          onClick={() => openInvoiceDetail(invoice)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openInvoiceDetail(invoice)
+                          }}
                           title="View Details"
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
-                        
-                        <Button 
-                          size="sm" 
+
+                        <Button
+                          size="sm"
                           variant="ghost"
-                          onClick={() => downloadInvoice(invoice.id)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            downloadInvoice(invoice.id)
+                          }}
                           title="Download Invoice"
                         >
                           <Download className="w-4 h-4 text-blue-600" />
                         </Button>
 
                         {(invoice.status === "unpaid" || invoice.status === "overdue") && (
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="ghost"
-                            onClick={() => sendReminder(invoice.id)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              sendReminder(invoice.id)
+                            }}
                             title="Send Reminder"
                           >
                             <Send className="w-4 h-4 text-purple-600" />

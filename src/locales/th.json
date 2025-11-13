@@ -22,11 +22,7 @@
   },
   "sidebar": {
     "tuitionManagement": "จัดการค่าเทอม",
-    "afterSchool": "ECA & EAS",
-    "eventManagement": "จัดการกิจกรรม",
-    "summerActivities": "กิจกรรมฤดูร้อน",
     "discountManagement": "จัดการส่วนลด",
-    "invoiceManagement": "จัดการใบแจ้งหนี้",
     "emailNotifications": "การแจ้งเตือนอีเมล",
     "userManagement": "จัดการผู้ใช้งาน"
   },
@@ -38,27 +34,18 @@
     "transactionManagement": "จัดการธุรกรรม",
     "registrationSettings": "ตั้งค่าการลงทะเบียน",
     "courseQuota": "คอร์สและโควต้า",
-    "externalParents": "ผู้ปกครองภายนอก",
     "receipts": "ใบเสร็จรับเงิน",
-    "eventImport": "นำเข้ากิจกรรม",
-    "paymentDeadline": "กำหนดชำระเงิน",
-    "registrationReports": "รายงานการลงทะเบียน",
-    "summerActivitiesImport": "นำเข้ากิจกรรมฤดูร้อน",
-    "registrationControl": "ควบคุมการลงทะเบียน",
-    "paymentReports": "รายงานการชำระเงิน",
     "discountOverview": "ภาพรวมส่วนลด",
     "studentGroups": "กลุ่มนักเรียน",
     "promotionalCampaigns": "แคมเปญส่งเสริมการขาย",
     "waiveFee": "ยกเว้นค่าธรรมเนียม",
     "discountReports": "รายงานส่วนลด",
-    "invoices": "ใบแจ้งหนี้",
     "itemsTemplates": "รายการและเทมเพลต",
     "emailJobs": "งานอีเมล",
     "userManagement": "จัดการผู้ใช้งาน"
   },
   "pages": {
     "createTuitionInvoice": "สร้างใบแจ้งหนี้ค่าเทอม",
-    "createECAInvoice": "สร้างใบแจ้งหนี้กิจกรรมเสริม",
     "createTripInvoice": "สร้างใบแจ้งหนี้ทริปและกิจกรรม",
     "createInvoice": "สร้างใบแจ้งหนี้",
     "emailDeliveryHistory": "ประวัติการส่งอีเมล",
@@ -132,12 +119,13 @@
     "daysBefore": "วันก่อนเริ่มเทอม",
     "term1": "เทอม 1 (สิงหาคม - ธันวาคม)",
     "term2": "เทอม 2 (มกราคม - มีนาคม)",
-    "term3": "เทอม 3 (เมษายน - กรกฎาคม)"
+    "term3": "เทอม 3 (เมษายน - กรกฎาคม)",
+    "saveSuccess": "บันทึกสำเร็จ",
+    "saveSuccessMessage": "การเปลี่ยนแปลงทั้งหมดถูกบันทึกเรียบร้อยแล้ว"
   },
   "paymentHistory": {
     "title": {
-      "tuition": "ประวัติการชำระค่าเทอม",
-      "afterschool": "ประวัติการชำระ ECA & EAS"
+      "tuition": "ประวัติการชำระค่าเทอม"
     },
     "description": "ดูบันทึกการชำระเงินและรายละเอียดธุรกรรม",
     "exportData": "ส่งออกข้อมูล",

@@ -159,7 +159,7 @@ Invoice Details:
 Please ensure payment is made by the due date specified in the invoice. If you have any questions or concerns regarding this invoice, please don't hesitate to contact our finance office.
 
 Thank you for your continued trust in SISB School.`,
-    footerText: "Best regards,\nSISB School Finance Department\nEmail: finance@sisb.ac.th\nPhone: +66 2 xxx xxxx",
+    footerText: "Best regards,\nSISB School Finance Department\nEmail: finance@rugby.ac.th\nPhone: +66 2 xxx xxxx",
     isDefault: true
   },
   {
@@ -180,7 +180,7 @@ Thank you for your continued trust in SISB School.`,
 กรุณาชำระเงินภายในกำหนดที่ระบุในใบแจ้งหนี้ หากท่านมีคำถามหรือข้อสงสัยเกี่ยวกับใบแจ้งหนี้นี้ กรุณาติดต่อแผนกการเงินของโรงเรียน
 
 ขอขอบคุณที่ไว้วางใจในโรงเรียน SISB`,
-    footerText: "ด้วยความเคารพ,\nแผนกการเงิน โรงเรียน SISB\nอีเมล: finance@sisb.ac.th\nโทรศัพท์: +66 2 xxx xxxx",
+    footerText: "ด้วยความเคารพ,\nแผนกการเงิน โรงเรียน SISB\nอีเมล: finance@rugby.ac.th\nโทรศัพท์: +66 2 xxx xxxx",
     isDefault: true
   },
   {
@@ -201,7 +201,7 @@ Thank you for your continued trust in SISB School.`,
 请在账单上指定的截止日期前付款。如果您对此账单有任何疑问，请随时联系我们的财务办公室。
 
 感谢您对SISB学校的持续信任。`,
-    footerText: "此致\n敬礼\nSISB学校财务部\n邮箱：finance@sisb.ac.th\n电话：+66 2 xxx xxxx",
+    footerText: "此致\n敬礼\nSISB学校财务部\n邮箱：finance@rugby.ac.th\n电话：+66 2 xxx xxxx",
     isDefault: true
   }
 ]

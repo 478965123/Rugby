@@ -62,7 +62,7 @@ const mockEmailJobs: EmailJob[] = [
     status: "completed",
     createdAt: "2024-01-15T08:30:00Z",
     completedAt: "2024-01-15T08:45:00Z",
-    createdBy: "admin@sisb.ac.th",
+    createdBy: "admin@rugby.ac.th",
     description: "Term 2 Tuition Invoice - Year 7"
   },
   {
@@ -76,7 +76,7 @@ const mockEmailJobs: EmailJob[] = [
     pendingCount: 3,
     status: "in-progress",
     createdAt: "2024-01-15T10:15:00Z",
-    createdBy: "admin@sisb.ac.th",
+    createdBy: "admin@rugby.ac.th",
     description: "Football Club Registration - Year 8-9"
   },
   {
@@ -90,7 +90,7 @@ const mockEmailJobs: EmailJob[] = [
     pendingCount: 0,
     status: "failed",
     createdAt: "2024-01-15T14:20:00Z",
-    createdBy: "admin@sisb.ac.th",
+    createdBy: "admin@rugby.ac.th",
     description: "Science Museum Trip - Year 10"
   },
   {
@@ -104,7 +104,7 @@ const mockEmailJobs: EmailJob[] = [
     pendingCount: 22,
     status: "pending",
     createdAt: "2024-01-15T16:00:00Z",
-    createdBy: "admin@sisb.ac.th",
+    createdBy: "admin@rugby.ac.th",
     description: "Term 2 Tuition Invoice - Reception"
   }
 ]

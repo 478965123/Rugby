@@ -180,7 +180,7 @@ const generateStudentRegistrations = (courseId: string, enrolledCount: number): 
       paymentChannel: paymentChannels[Math.floor(Math.random() * paymentChannels.length)],
       paymentStatus: hasPayment ? "paid" : Math.random() > 0.5 ? "pending" : "overdue",
       amount: mockCourses.find(c => c.id === courseId)?.fee || 0,
-      studentEmail: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@sisb.ac.th`,
+      studentEmail: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@rugby.ac.th`,
       parentEmail: `${parentFirstName.toLowerCase()}.${lastName.toLowerCase()}@email.com`,
       parentPhone: `+66 ${Math.floor(Math.random() * 90) + 10} ${Math.floor(Math.random() * 900) + 100} ${Math.floor(Math.random() * 9000) + 1000}`
     })

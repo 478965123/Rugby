@@ -1,10 +1,11 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 import { Calendar } from "./ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog"
 import { CalendarIcon, Save, Plus, Trash2 } from "lucide-react"
 import { format } from "date-fns"
 import { useTranslation } from 'react-i18next'
@@ -20,31 +21,46 @@ interface Term {
 export function TuitionTermSettings() {
   const { t } = useTranslation()
 
-  const initialTerms: Term[] = [
-    {
-      id: "1",
-      name: t('termSettings.term1'),
-      startDate: new Date("2025-08-15"),
-      endDate: new Date("2025-12-20"),
-      paymentDeadline: new Date("2025-08-01")
-    },
-    {
-      id: "2",
-      name: t('termSettings.term2'),
-      startDate: new Date("2026-01-08"),
-      endDate: new Date("2026-03-20"),
-      paymentDeadline: new Date("2025-12-15")
-    },
-    {
-      id: "3",
-      name: t('termSettings.term3'),
-      startDate: new Date("2026-04-01"),
-      endDate: new Date("2026-06-15"),
-      paymentDeadline: new Date("2026-03-15")
+  const getInitialTerms = (): Term[] => {
+    const savedTerms = localStorage.getItem('tuitionTerms')
+    if (savedTerms) {
+      const parsed = JSON.parse(savedTerms)
+      // Convert date strings back to Date objects
+      return parsed.map((term: any) => ({
+        ...term,
+        startDate: term.startDate ? new Date(term.startDate) : null,
+        endDate: term.endDate ? new Date(term.endDate) : null,
+        paymentDeadline: term.paymentDeadline ? new Date(term.paymentDeadline) : null
+      }))
     }
-  ]
+    // Default terms if no saved data
+    return [
+      {
+        id: "1",
+        name: t('termSettings.term1'),
+        startDate: new Date("2025-08-15"),
+        endDate: new Date("2025-12-20"),
+        paymentDeadline: new Date("2025-08-01")
+      },
+      {
+        id: "2",
+        name: t('termSettings.term2'),
+        startDate: new Date("2026-01-08"),
+        endDate: new Date("2026-03-20"),
+        paymentDeadline: new Date("2025-12-15")
+      },
+      {
+        id: "3",
+        name: t('termSettings.term3'),
+        startDate: new Date("2026-04-01"),
+        endDate: new Date("2026-06-15"),
+        paymentDeadline: new Date("2026-03-15")
+      }
+    ]
+  }
 
-  const [terms, setTerms] = useState<Term[]>(initialTerms)
+  const [terms, setTerms] = useState<Term[]>(getInitialTerms)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
 
   const addNewTerm = () => {
     const newTerm: Term = {
@@ -68,8 +84,19 @@ export function TuitionTermSettings() {
   }
 
   const saveTerm = (id: string) => {
+    // Save to localStorage
+    localStorage.setItem('tuitionTerms', JSON.stringify(terms))
     // In a real app, this would save to backend
     console.log("Saving term", id)
+    setShowSuccessModal(true)
+  }
+
+  const saveAllChanges = () => {
+    // Save to localStorage
+    localStorage.setItem('tuitionTerms', JSON.stringify(terms))
+    // In a real app, this would also save all terms to backend
+    console.log("Saving all changes", terms)
+    setShowSuccessModal(true)
   }
 
   return (
@@ -224,11 +251,23 @@ export function TuitionTermSettings() {
 
       {/* Save All Button */}
       <div className="flex justify-end">
-        <Button size="lg" className="px-8">
+        <Button size="lg" className="px-8" onClick={saveAllChanges}>
           <Save className="w-4 h-4 mr-2" />
           Save All Changes
         </Button>
       </div>
+
+      {/* Success Modal */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('termSettings.saveSuccess')}</DialogTitle>
+            <DialogDescription>
+              {t('termSettings.saveSuccessMessage')}
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
