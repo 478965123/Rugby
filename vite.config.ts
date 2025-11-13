@@ -57,5 +57,10 @@
       host: '0.0.0.0',
       port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
       open: true,
+      allowedHosts: [
+        'rugby-i1r5.onrender.com',
+        '.onrender.com',
+        'localhost'
+      ],
     },
   });
