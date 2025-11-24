@@ -30,7 +30,7 @@ interface User {
   email: string
   phone: string
   username: string
-  role: "admin" | "manager" | "staff" | "viewer"
+  role: "admin" | "viewer"
   status: "active" | "inactive"
   createdAt: Date
   lastLogin?: Date
@@ -51,42 +51,6 @@ const mockUsers: User[] = [
   },
   {
     id: "2",
-    firstName: "Sarah",
-    lastName: "Johnson",
-    email: "sarah.johnson@rugby.ac.th",
-    phone: "+66 82 345 6789",
-    username: "sarah.johnson",
-    role: "manager",
-    status: "active",
-    createdAt: new Date("2024-02-20"),
-    lastLogin: new Date("2025-10-13T14:20:00")
-  },
-  {
-    id: "3",
-    firstName: "Michael",
-    lastName: "Chen",
-    email: "michael.chen@rugby.ac.th",
-    phone: "+66 83 456 7890",
-    username: "michael.chen",
-    role: "staff",
-    status: "active",
-    createdAt: new Date("2024-03-10"),
-    lastLogin: new Date("2025-10-14T08:15:00")
-  },
-  {
-    id: "4",
-    firstName: "Emily",
-    lastName: "Davis",
-    email: "emily.davis@rugby.ac.th",
-    phone: "+66 84 567 8901",
-    username: "emily.davis",
-    role: "staff",
-    status: "active",
-    createdAt: new Date("2024-04-05"),
-    lastLogin: new Date("2025-10-12T16:45:00")
-  },
-  {
-    id: "5",
     firstName: "David",
     lastName: "Wilson",
     email: "david.wilson@rugby.ac.th",
@@ -101,8 +65,6 @@ const mockUsers: User[] = [
 
 const roleLabels = {
   admin: "Administrator",
-  manager: "Manager",
-  staff: "Staff",
   viewer: "Viewer"
 }
 
@@ -127,7 +89,7 @@ export function UserManagement() {
     phone: "",
     username: "",
     password: "",
-    role: "staff" as User["role"],
+    role: "viewer" as User["role"],
     status: "active" as User["status"]
   })
 
@@ -164,10 +126,6 @@ export function UserManagement() {
     switch (role) {
       case "admin":
         return <Badge className="bg-purple-100 text-purple-800">Administrator</Badge>
-      case "manager":
-        return <Badge className="bg-blue-100 text-blue-800">Manager</Badge>
-      case "staff":
-        return <Badge className="bg-green-100 text-green-800">Staff</Badge>
       case "viewer":
         return <Badge className="bg-gray-100 text-gray-800">Viewer</Badge>
       default:
@@ -190,7 +148,7 @@ export function UserManagement() {
       phone: "",
       username: "",
       password: "",
-      role: "staff",
+      role: "viewer",
       status: "active"
     })
     setIsCreateModalOpen(true)
@@ -281,8 +239,7 @@ export function UserManagement() {
     totalUsers: users.length,
     activeUsers: users.filter(u => u.status === "active").length,
     admins: users.filter(u => u.role === "admin").length,
-    managers: users.filter(u => u.role === "manager").length,
-    staff: users.filter(u => u.role === "staff").length
+    viewers: users.filter(u => u.role === "viewer").length
   }
 
   return (
@@ -301,7 +258,7 @@ export function UserManagement() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -326,21 +283,11 @@ export function UserManagement() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Managers</CardTitle>
+            <CardTitle className="text-sm font-medium">Viewers</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summaryStats.managers}</div>
-            <p className="text-xs text-muted-foreground">Management level</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Staff</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summaryStats.staff}</div>
-            <p className="text-xs text-muted-foreground">Limited access</p>
+            <div className="text-2xl font-bold">{summaryStats.viewers}</div>
+            <p className="text-xs text-muted-foreground">Read-only access</p>
           </CardContent>
         </Card>
 
@@ -389,8 +336,6 @@ export function UserManagement() {
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
                   <SelectItem value="admin">Administrator</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="staff">Staff</SelectItem>
                   <SelectItem value="viewer">Viewer</SelectItem>
                 </SelectContent>
               </Select>
@@ -586,8 +531,6 @@ export function UserManagement() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Administrator</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="staff">Staff</SelectItem>
                     <SelectItem value="viewer">Viewer</SelectItem>
                   </SelectContent>
                 </Select>
@@ -699,8 +642,6 @@ export function UserManagement() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Administrator</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="staff">Staff</SelectItem>
                     <SelectItem value="viewer">Viewer</SelectItem>
                   </SelectContent>
                 </Select>

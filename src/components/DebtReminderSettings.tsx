@@ -12,7 +12,8 @@ import { Save, Bell, Plus, Trash2, Mail, Send } from "lucide-react"
 interface ReminderConfig {
   id: string
   name: string
-  daysBefore: number
+  timing: "before" | "after"
+  days: number
   method: "email" | "sms" | "both"
   enabled: boolean
   subject: string
@@ -23,7 +24,8 @@ const initialReminders: ReminderConfig[] = [
   {
     id: "1",
     name: "First Reminder",
-    daysBefore: 30,
+    timing: "before",
+    days: 30,
     method: "email",
     enabled: true,
     subject: "Tuition Payment Reminder - 30 Days",
@@ -31,8 +33,9 @@ const initialReminders: ReminderConfig[] = [
   },
   {
     id: "2",
-    name: "Second Reminder", 
-    daysBefore: 14,
+    name: "Second Reminder",
+    timing: "before",
+    days: 14,
     method: "both",
     enabled: true,
     subject: "Urgent: Tuition Payment Due in 14 Days",
@@ -40,12 +43,13 @@ const initialReminders: ReminderConfig[] = [
   },
   {
     id: "3",
-    name: "Final Notice",
-    daysBefore: 7,
+    name: "Overdue Notice",
+    timing: "after",
+    days: 7,
     method: "both",
     enabled: true,
-    subject: "FINAL NOTICE: Tuition Payment Due in 7 Days",
-    message: "Dear Parent, This is a final notice that your child's tuition payment is due in 7 days. Please contact our office immediately if you need assistance with payment arrangements."
+    subject: "OVERDUE: Tuition Payment Past Due",
+    message: "Dear Parent, Your child's tuition payment is now 7 days overdue. Please contact our office immediately to arrange payment."
   }
 ]
 
@@ -67,7 +71,8 @@ export function DebtReminderSettings() {
     const newReminder: ReminderConfig = {
       id: Date.now().toString(),
       name: "New Reminder",
-      daysBefore: 7,
+      timing: "before",
+      days: 7,
       method: "email",
       enabled: true,
       subject: "Tuition Payment Reminder",
@@ -189,15 +194,33 @@ export function DebtReminderSettings() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Days Before Due Date</Label>
-                <Input
-                  type="number"
-                  value={reminder.daysBefore}
-                  onChange={(e) => updateReminder(reminder.id, "daysBefore", parseInt(e.target.value))}
-                  min="1"
-                  max="365"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Timing</Label>
+                  <Select
+                    value={reminder.timing}
+                    onValueChange={(value: "before" | "after") => updateReminder(reminder.id, "timing", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="before">Before Due Date</SelectItem>
+                      <SelectItem value="after">After Due Date</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Days</Label>
+                  <Input
+                    type="number"
+                    value={reminder.days}
+                    onChange={(e) => updateReminder(reminder.id, "days", parseInt(e.target.value))}
+                    min="1"
+                    max="365"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -227,7 +250,7 @@ export function DebtReminderSettings() {
                 <div className="p-4 bg-muted rounded-lg">
                   <h4 className="font-medium mb-2">Reminder Preview</h4>
                   <div className="text-sm space-y-1">
-                    <p><strong>Timing:</strong> {reminder.daysBefore} days before payment due date</p>
+                    <p><strong>Timing:</strong> {reminder.days} days {reminder.timing === "before" ? "before" : "after"} payment due date</p>
                     <p><strong>Status:</strong>
                       <span className={reminder.enabled ? "text-green-600 ml-1" : "text-red-600 ml-1"}>
                         {reminder.enabled ? "Active" : "Disabled"}
@@ -263,7 +286,7 @@ export function DebtReminderSettings() {
                           .replace(/{student_name}/g, "Emma Smith")
                           .replace(/{amount}/g, "฿45,000")
                           .replace(/{due_date}/g, "November 15, 2025")
-                          .replace(/{days_remaining}/g, reminder.daysBefore.toString())}
+                          .replace(/{days_remaining}/g, reminder.days.toString())}
                       </div>
 
                       {/* Sample Footer */}

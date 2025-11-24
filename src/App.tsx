@@ -53,7 +53,7 @@ import { TuitionDashboard } from "./components/TuitionDashboard"
 import { TuitionTermSettings } from "./components/TuitionTermSettings"
 import { DebtReminderSettings } from "./components/DebtReminderSettings"
 import { PaymentHistory } from "./components/PaymentHistory"
-import { TuitionInvoiceManagement } from "./components/TuitionInvoiceManagement"
+import { ReceiptPageUpdated } from "./components/ReceiptPageUpdated"
 import { AfterSchoolDashboard } from "./components/AfterSchoolDashboard"
 import { AfterSchoolSettings } from "./components/AfterSchoolSettings"
 import { CourseQuotaOverview } from "./components/CourseQuotaOverview"
@@ -79,6 +79,7 @@ import { EmailCsvExport } from "./components/EmailCsvExport"
 import { ViewModal } from "./components/ViewModal"
 import { ViewDetailsPage } from "./components/ViewDetailsPage"
 import { UserManagement } from "./components/UserManagement"
+import { PaymentTransactions } from "./components/PaymentTransactions"
 
 const menuItems = {
   tuition: [
@@ -86,6 +87,7 @@ const menuItems = {
     { id: "tuition-term-settings", labelKey: "menu.termSettings", icon: Calendar },
     { id: "debt-reminder-settings", labelKey: "menu.debtReminders", icon: Bell },
     { id: "payment-history", labelKey: "menu.paymentHistory", icon: CreditCard },
+    { id: "payment-transactions", labelKey: "menu.paymentTransactions", icon: Receipt },
     { id: "tuition-invoice-management", labelKey: "menu.transactionManagement", icon: FileText },
   ],
   userManagement: [
@@ -181,8 +183,10 @@ export default function App() {
         return <DebtReminderSettings />
       case "payment-history":
         return <PaymentHistory />
+      case "payment-transactions":
+        return <PaymentTransactions />
       case "tuition-invoice-management":
-        return <TuitionInvoiceManagement />
+        return <ReceiptPageUpdated />
       case "invoice-creation":
         return <InvoiceCreation 
           defaultCategory={subPageParams?.defaultCategory}

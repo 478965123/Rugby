@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { InvoiceOverview } from "./InvoiceOverview"
-import { ReceiptPage } from "./ReceiptPageUpdated"
+import { ReceiptPageUpdated } from "./ReceiptPageUpdated"
 import { CreditNoteManagement } from "./CreditNoteManagement"
 
 export function TuitionInvoiceManagement() {
@@ -28,7 +28,7 @@ export function TuitionInvoiceManagement() {
         </TabsContent>
 
         <TabsContent value="receipts" className="space-y-6">
-          <ReceiptPage />
+          <ReceiptPageUpdated />
         </TabsContent>
 
         <TabsContent value="credit-notes" className="space-y-6">

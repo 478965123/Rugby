@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
@@ -7,158 +8,183 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Badge } from "./ui/badge"
 import { Calendar } from "./ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
-import { CalendarIcon, Search, Download, Filter, Eye, Mail, Receipt, Users } from "lucide-react"
-import { PaymentChannelFilter, PaymentChannel, getPaymentChannelLabel } from "./StatusFilter"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog"
+import { Separator } from "./ui/separator"
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "./ui/pagination"
-import { Checkbox } from "./ui/checkbox"
+import { CalendarIcon, Search, Download, Filter, Eye, Receipt, CreditCard, ChevronLeft, ChevronRight, Mail, ExternalLink } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from "sonner"
-import { InternalEmailManagement } from "./InternalEmailManagement"
+import { getPaymentChannelLabel } from "./StatusFilter"
 
-interface Receipt {
+interface ReceiptRecord {
   id: string
   receiptNumber: string
   invoiceNumber: string
   studentName: string
   studentId: string
   studentGrade: string
+  studentRoom: string
+  schoolLevel: "nk" | "primary" | "secondary"
   amount: number
-  paymentMethod: string
-  paymentChannel: "credit_card" | "wechat_pay" | "alipay" | "qr_payment" | "counter_bank"
-  transactionDate: Date
   paymentType: "yearly" | "termly"
-  term: string
-  downloadCount: number
+  paymentMethod: string
+  paymentChannel: "credit_card" | "qr_payment" | "counter_bank"
+  payerName: string
+  parentEmail: string
+  transactionDate: Date
+  lastEmailSentDate?: Date
+  navSyncStatus: "synced" | "pending" | "failed"
+  navSyncDate?: Date
+  parentType?: "internal" | "external"
+  referenceNumber?: string
+  paymentDescription?: string
+  notes?: string
 }
 
-const mockReceipts: Receipt[] = [
-  {
-    id: "1",
-    receiptNumber: "RCP-2025-001234",
-    invoiceNumber: "INV-2025-001234",
-    studentName: "John Smith",
-    studentId: "ST001234",
-    studentGrade: "Year 10",
-    amount: 125000,
-    paymentMethod: "Credit Card",
-    paymentChannel: "credit_card",
-    transactionDate: new Date("2025-08-15"),
-    paymentType: "yearly",
-    term: "2025-2026",
-    downloadCount: 3
-  },
-  {
-    id: "2",
-    receiptNumber: "RCP-2025-001235",
-    invoiceNumber: "INV-2025-001235",
-    studentName: "Sarah Wilson",
-    studentId: "ST001235",
-    studentGrade: "Year 7",
-    amount: 42000,
-    paymentMethod: "PromptPay",
-    paymentChannel: "qr_payment",
-    transactionDate: new Date("2025-08-14"),
-    paymentType: "termly",
-    term: "Term 1",
-    downloadCount: 1
-  },
-  {
-    id: "3",
-    receiptNumber: "RCP-2025-001236",
-    invoiceNumber: "INV-2025-001236",
-    studentName: "Mike Johnson",
-    studentId: "ST001236",
-    studentGrade: "Year 12",
-    amount: 125000,
-    paymentMethod: "Bank Counter",
-    paymentChannel: "counter_bank",
-    transactionDate: new Date("2025-08-13"),
-    paymentType: "yearly",
-    term: "2025-2026",
-    downloadCount: 0
-  },
-  {
-    id: "4",
-    receiptNumber: "RCP-2025-001237",
-    invoiceNumber: "INV-2025-001237",
-    studentName: "Lisa Chen",
-    studentId: "ST001237",
-    studentGrade: "Year 3",
-    amount: 42000,
-    paymentMethod: "WeChat Pay",
-    paymentChannel: "wechat_pay",
-    transactionDate: new Date("2025-08-12"),
-    paymentType: "termly",
-    term: "Term 1",
-    downloadCount: 2
-  },
-  {
-    id: "5",
-    receiptNumber: "RCP-2025-001238",
-    invoiceNumber: "INV-2025-001238",
-    studentName: "David Brown",
-    studentId: "ST001238",
-    studentGrade: "Reception",
-    amount: 125000,
-    paymentMethod: "Credit Card",
-    paymentChannel: "credit_card",
-    transactionDate: new Date("2025-08-11"),
-    paymentType: "yearly",
-    term: "2025-2026",
-    downloadCount: 0
-  }
-]
-
-// Add more mock data for pagination testing
-for (let i = 6; i <= 120; i++) {
+// Generate mock receipts data
+const generateMockReceipts = (): ReceiptRecord[] => {
   const grades = ["Reception", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6", "Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12"]
-  const paymentMethods = ["Credit Card", "PromptPay", "Bank Counter", "WeChat Pay", "Alipay", "Cash"]
-  const paymentChannels: ("credit_card" | "wechat_pay" | "alipay" | "qr_payment" | "counter_bank")[] = ["credit_card", "wechat_pay", "alipay", "qr_payment", "counter_bank"]
-  const paymentTypes: ("yearly" | "termly")[] = ["yearly", "termly"]
-  
-  mockReceipts.push({
-    id: i.toString(),
-    receiptNumber: `RCP-2025-${String(1234 + i).padStart(6, '0')}`,
-    invoiceNumber: `INV-2025-${String(1234 + i).padStart(6, '0')}`,
-    studentName: `Student ${i}`,
-    studentId: `ST${String(1234 + i).padStart(6, '0')}`,
-    studentGrade: grades[i % grades.length],
-    amount: Math.floor(Math.random() * 100000) + 25000,
-    paymentMethod: paymentMethods[Math.floor(Math.random() * paymentMethods.length)],
-    paymentChannel: paymentChannels[Math.floor(Math.random() * paymentChannels.length)],
-    transactionDate: new Date(2025, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-    paymentType: paymentTypes[Math.floor(Math.random() * paymentTypes.length)],
-    term: Math.random() > 0.5 ? "2025-2026" : `Term ${Math.floor(Math.random() * 3) + 1}`,
-    downloadCount: Math.floor(Math.random() * 10)
-  })
+  const rooms = ["A", "B", "C", "D", "E", "F", "G", "H"]
+  const firstNames = ["John", "Sarah", "Mike", "Lisa", "David", "Emma", "James", "Sophia", "William", "Olivia", "Benjamin", "Ava", "Lucas", "Isabella", "Henry", "Mia", "Alexander", "Charlotte", "Mason", "Amelia", "Ethan", "Harper", "Daniel", "Evelyn", "Matthew", "Abigail", "Jackson", "Emily", "Sebastian", "Elizabeth", "Jack", "Sofia", "Aiden", "Avery", "Owen", "Ella", "Samuel", "Madison", "Gabriel", "Scarlett", "Carter", "Victoria", "Wyatt", "Aria", "Jayden", "Grace", "John", "Chloe", "Luke", "Camila", "Anthony", "Penelope", "Isaac", "Riley"]
+  const lastNames = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin", "Lee", "Perez", "Thompson", "White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson", "Walker", "Young", "Allen", "King", "Wright", "Scott", "Torres", "Nguyen", "Hill", "Flores", "Green", "Adams", "Nelson", "Baker", "Hall", "Rivera", "Campbell", "Mitchell", "Carter", "Roberts"]
+  const paymentMethods = ["Credit Card", "PromptPay", "Bank Counter", "Bank Transfer", "Cash"]
+  const paymentChannels: ("credit_card" | "qr_payment" | "counter_bank")[] = ["credit_card", "qr_payment", "counter_bank"]
+  const payerNames = ["Mr. John Smith", "Mrs. Sarah Johnson", "Mr. David Williams", "Ms. Emily Brown", "Mr. Michael Davis", "Mrs. Lisa Garcia", "Mr. James Wilson", "Ms. Maria Rodriguez"]
+
+  const receipts: ReceiptRecord[] = []
+
+  for (let i = 1; i <= 125; i++) {
+    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)]
+    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)]
+    const grade = grades[Math.floor(Math.random() * grades.length)]
+    const room = rooms[Math.floor(Math.random() * rooms.length)]
+
+    // Determine school level based on grade
+    let schoolLevel: "nk" | "primary" | "secondary"
+    if (grade === "Reception") {
+      schoolLevel = "nk"
+    } else {
+      const yearNumber = parseInt(grade.replace("Year ", ""))
+      if (yearNumber <= 6) {
+        schoolLevel = "primary"
+      } else {
+        schoolLevel = "secondary"
+      }
+    }
+
+    const paymentType = Math.random() > 0.6 ? "yearly" : "termly"
+    const amount = paymentType === "yearly" ? 125000 : 42000
+    const paymentMethod = paymentMethods[Math.floor(Math.random() * paymentMethods.length)]
+    const paymentChannel = paymentChannels[Math.floor(Math.random() * paymentChannels.length)]
+    const payerName = payerNames[Math.floor(Math.random() * payerNames.length)]
+
+    const date = new Date()
+    date.setDate(date.getDate() - Math.floor(Math.random() * 90))
+
+    const parentEmail = `${payerName.split(' ')[1].toLowerCase()}@example.com`
+
+    // Generate lastEmailSentDate (70% of receipts have email sent, 30% have not)
+    let lastEmailSentDate: Date | undefined
+    if (Math.random() > 0.3) {
+      lastEmailSentDate = new Date(date)
+      lastEmailSentDate.setDate(lastEmailSentDate.getDate() + Math.floor(Math.random() * 7) + 1) // 1-7 days after transaction
+    }
+
+    // Generate NAV sync status (80% synced, 15% pending, 5% failed)
+    const rand = Math.random()
+    let navSyncStatus: "synced" | "pending" | "failed"
+    let navSyncDate: Date | undefined
+
+    if (rand > 0.2) {
+      navSyncStatus = "synced"
+      navSyncDate = new Date(date)
+      navSyncDate.setHours(navSyncDate.getHours() + Math.floor(Math.random() * 24) + 1) // 1-24 hours after transaction
+    } else if (rand > 0.05) {
+      navSyncStatus = "pending"
+    } else {
+      navSyncStatus = "failed"
+    }
+
+    receipts.push({
+      id: i.toString(),
+      receiptNumber: `RCP-2025-${String(i).padStart(6, '0')}`,
+      invoiceNumber: `INV-2025-${String(i).padStart(6, '0')}`,
+      studentName: `${firstName} ${lastName}`,
+      studentId: `ST${String(i).padStart(6, '0')}`,
+      studentGrade: grade,
+      studentRoom: room,
+      schoolLevel,
+      amount,
+      paymentType,
+      paymentMethod,
+      paymentChannel,
+      payerName,
+      parentEmail,
+      transactionDate: date,
+      lastEmailSentDate,
+      navSyncStatus,
+      navSyncDate,
+      parentType: Math.random() > 0.7 ? "external" : "internal",
+      referenceNumber: `REF-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
+      paymentDescription: paymentType === "yearly" ? "Annual tuition fee payment for academic year 2025-2026" : "Term 1 tuition fee payment",
+      notes: "Payment completed successfully"
+    })
+  }
+
+  return receipts
 }
 
-export function ReceiptPage() {
-  const [receipts] = useState<Receipt[]>(mockReceipts)
-  const [filteredReceipts, setFilteredReceipts] = useState<Receipt[]>(mockReceipts)
+const mockReceipts: ReceiptRecord[] = generateMockReceipts()
+
+export function ReceiptPageUpdated() {
+  const { t } = useTranslation()
+  const [receipts, setReceipts] = useState<ReceiptRecord[]>(mockReceipts)
+  const [filteredReceipts, setFilteredReceipts] = useState<ReceiptRecord[]>(mockReceipts)
   const [searchTerm, setSearchTerm] = useState("")
-  const [paymentTypeFilter, setPaymentTypeFilter] = useState("all")
   const [gradeFilter, setGradeFilter] = useState("all")
-  const [paymentChannelFilter, setPaymentChannelFilter] = useState<PaymentChannel>("all")
+  const [schoolLevelFilter, setSchoolLevelFilter] = useState("all")
   const [dateFrom, setDateFrom] = useState<Date | null>(null)
   const [dateTo, setDateTo] = useState<Date | null>(null)
+  const [selectedReceipt, setSelectedReceipt] = useState<ReceiptRecord | null>(null)
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 15
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
-  // Selection states
-  const [selectedReceipts, setSelectedReceipts] = useState<Set<string>>(new Set())
+  // Action handlers
+  const handleViewPDF = (receipt: ReceiptRecord) => {
+    setSelectedReceipt(receipt)
+  }
 
-  // Grade options for filter
-  const gradeOptions = ["Reception", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6", "Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12"]
+  const handleSendEmail = (receipt: ReceiptRecord) => {
+    // Update lastEmailSentDate to current date
+    const updatedReceipts = receipts.map(r =>
+      r.id === receipt.id ? { ...r, lastEmailSentDate: new Date() } : r
+    )
+    setReceipts(updatedReceipts)
+
+    // Also update filtered receipts
+    const updatedFilteredReceipts = filteredReceipts.map(r =>
+      r.id === receipt.id ? { ...r, lastEmailSentDate: new Date() } : r
+    )
+    setFilteredReceipts(updatedFilteredReceipts)
+
+    toast.success(`Email sent to ${receipt.parentEmail}`)
+  }
+
+  const handleDownloadReceipt = (receipt: ReceiptRecord) => {
+    toast.success(`Downloading receipt ${receipt.receiptNumber}`)
+  }
+
+  const handleViewTransaction = (receipt: ReceiptRecord) => {
+    toast.info(`Viewing transaction for receipt ${receipt.receiptNumber}`)
+  }
 
   const applyFilters = () => {
     let filtered = receipts
 
     if (searchTerm) {
-      filtered = filtered.filter(receipt => 
+      filtered = filtered.filter(receipt =>
         receipt.receiptNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         receipt.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         receipt.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -166,16 +192,12 @@ export function ReceiptPage() {
       )
     }
 
-    if (paymentTypeFilter !== "all") {
-      filtered = filtered.filter(receipt => receipt.paymentType === paymentTypeFilter)
-    }
-
     if (gradeFilter !== "all") {
       filtered = filtered.filter(receipt => receipt.studentGrade === gradeFilter)
     }
 
-    if (paymentChannelFilter !== "all") {
-      filtered = filtered.filter(receipt => receipt.paymentChannel === paymentChannelFilter)
+    if (schoolLevelFilter !== "all") {
+      filtered = filtered.filter(receipt => receipt.schoolLevel === schoolLevelFilter)
     }
 
     if (dateFrom) {
@@ -187,423 +209,485 @@ export function ReceiptPage() {
     }
 
     setFilteredReceipts(filtered)
-    setCurrentPage(1) // Reset to first page when filtering
+    setCurrentPage(1)
   }
 
   const clearFilters = () => {
     setSearchTerm("")
-    setPaymentTypeFilter("all")
     setGradeFilter("all")
-    setPaymentChannelFilter("all")
+    setSchoolLevelFilter("all")
     setDateFrom(null)
     setDateTo(null)
     setFilteredReceipts(receipts)
     setCurrentPage(1)
   }
 
-  const downloadReceipt = (receiptId: string) => {
-    const receipt = receipts.find(r => r.id === receiptId)
-    if (receipt) {
-      toast.success(`Receipt ${receipt.receiptNumber} downloaded successfully`)
-    }
+  const getPaymentTypeBadge = (paymentType: string) => {
+    return paymentType === "yearly"
+      ? <Badge variant="default">{t('paymentHistory.yearly')}</Badge>
+      : <Badge variant="secondary">{t('paymentHistory.termly')}</Badge>
   }
 
-  const resendReceipt = (receiptId: string) => {
-    const receipt = receipts.find(r => r.id === receiptId)
-    if (receipt) {
-      toast.success(`Receipt resent to ${receipt.studentName}'s parent`)
-    }
+  const downloadReceipt = (receipt: ReceiptRecord) => {
+    console.log("Downloading receipt", receipt.receiptNumber)
+    toast.success(`Receipt ${receipt.receiptNumber} downloaded`)
   }
 
-  const toggleReceiptSelection = (receiptId: string) => {
-    const newSelected = new Set(selectedReceipts)
-    if (newSelected.has(receiptId)) {
-      newSelected.delete(receiptId)
-    } else {
-      newSelected.add(receiptId)
-    }
-    setSelectedReceipts(newSelected)
-  }
-
-  const selectAllCurrentPage = () => {
-    const newSelected = new Set(selectedReceipts)
-    currentPageReceipts.forEach(receipt => {
-      newSelected.add(receipt.id)
-    })
-    setSelectedReceipts(newSelected)
-  }
-
-  const clearSelection = () => {
-    setSelectedReceipts(new Set())
-  }
-
-  // Calculate pagination
+  // Pagination logic
   const totalPages = Math.ceil(filteredReceipts.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
   const currentPageReceipts = filteredReceipts.slice(startIndex, endIndex)
 
-  const summaryStats = {
-    total: receipts.length,
-    totalDownloads: receipts.reduce((sum, r) => sum + r.downloadCount, 0),
-    totalAmount: receipts.reduce((sum, r) => sum + r.amount, 0)
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
   }
 
-  const goToPage = (page: number) => {
-    setCurrentPage(Math.max(1, Math.min(page, totalPages)))
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(parseInt(value))
+    setCurrentPage(1)
   }
+
+  const grades = ["Reception", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6", "Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12"]
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <div>
-          <h2 className="text-xl font-semibold">Tuition Receipt Management</h2>
-          <p className="text-sm text-muted-foreground">
-            Manage receipts and internal email notifications
-          </p>
-        </div>
+      {/* Header */}
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Receipt</h2>
+        <p className="text-muted-foreground">
+          View receipt records and transaction details
+        </p>
       </div>
 
-      <Tabs defaultValue="receipts" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="receipts" className="flex items-center gap-2">
-            <Receipt className="w-4 h-4" />
-            Receipt Management
-          </TabsTrigger>
-          <TabsTrigger value="whitelist" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Internal Email Whitelist
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="receipts" className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <div>
-              <h3 className="text-lg font-medium">Receipt Management</h3>
-              <p className="text-sm text-muted-foreground">
-                View and download tuition payment receipts
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex items-center gap-2">
-                <Mail className="w-4 h-4" />
-                Bulk Resend
-              </Button>
-              <Button className="flex items-center gap-2">
-                <Download className="w-4 h-4" />
-                Export All
-              </Button>
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="w-5 h-5" />
+            {t('paymentHistory.searchAndFilter')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Search */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">{t('paymentHistory.search')}</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Receipt, invoice, student name, or ID"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
           </div>
 
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Total Receipts</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{summaryStats.total}</div>
-              </CardContent>
-            </Card>
+          {/* Filters Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Grade Level */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">{t('paymentHistory.gradeLevel')}</label>
+              <Select value={gradeFilter} onValueChange={setGradeFilter}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('paymentHistory.allGrades')}</SelectItem>
+                  {grades.map((grade) => (
+                    <SelectItem key={grade} value={grade}>
+                      {grade}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">฿{summaryStats.totalAmount.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">
-                  All receipts combined
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+            {/* School Level */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">{t('paymentHistory.schoolLevel')}</label>
+              <Select value={schoolLevelFilter} onValueChange={setSchoolLevelFilter}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('paymentHistory.allSchoolLevels')}</SelectItem>
+                  <SelectItem value="nk">{t('paymentHistory.schoolLevels.nk')}</SelectItem>
+                  <SelectItem value="primary">{t('paymentHistory.schoolLevels.primary')}</SelectItem>
+                  <SelectItem value="secondary">{t('paymentHistory.schoolLevels.secondary')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Filter className="w-5 h-5" />
-                Search & Filter
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Search</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                    <Input
-                      placeholder="Receipt, invoice, student name"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
+            {/* Date Range */}
+            <div className="space-y-2 col-span-2">
+              <label className="text-sm font-medium">{t('paymentHistory.dateRange')}</label>
+              <div className="grid grid-cols-2 gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="justify-start text-left font-normal w-full">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateFrom ? format(dateFrom, "MMM dd, yyyy") : t('paymentHistory.from')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={dateFrom || undefined}
+                      onSelect={(date) => setDateFrom(date || null)}
                     />
-                  </div>
-                </div>
+                  </PopoverContent>
+                </Popover>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Payment Type</label>
-                  <Select value={paymentTypeFilter} onValueChange={setPaymentTypeFilter}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="yearly">Yearly</SelectItem>
-                      <SelectItem value="termly">Termly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Grade Level</label>
-                  <Select value={gradeFilter} onValueChange={setGradeFilter}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Grades</SelectItem>
-                      {gradeOptions.map((grade) => (
-                        <SelectItem key={grade} value={grade}>
-                          {grade}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <PaymentChannelFilter 
-                  selectedChannel={paymentChannelFilter} 
-                  onChannelChange={setPaymentChannelFilter}
-                />
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Date Range</label>
-                  <div className="flex gap-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" size="sm" className="flex-1">
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {dateFrom ? format(dateFrom, "MM/dd") : "From"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={dateFrom || undefined}
-                          onSelect={setDateFrom}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" size="sm" className="flex-1">
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {dateTo ? format(dateTo, "MM/dd") : "To"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={dateTo || undefined}
-                          onSelect={setDateTo}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="justify-start text-left font-normal w-full">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateTo ? format(dateTo, "MMM dd, yyyy") : t('paymentHistory.to')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={dateTo || undefined}
+                      onSelect={(date) => setDateTo(date || null)}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
-
-              <div className="flex gap-2">
-                <Button onClick={applyFilters}>Apply Filters</Button>
-                <Button variant="outline" onClick={clearFilters}>Clear All</Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Results Summary with Selection Info */}
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <p className="text-sm text-muted-foreground">
-                Showing {startIndex + 1}-{Math.min(endIndex, filteredReceipts.length)} of {filteredReceipts.length} receipts
-                {filteredReceipts.length !== receipts.length && (
-                  <span> (filtered from {receipts.length} total)</span>
-                )}
-              </p>
-              {selectedReceipts.size > 0 && (
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">
-                    {selectedReceipts.size} selected
-                  </Badge>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={clearSelection}
-                  >
-                    Clear Selection
-                  </Button>
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
-              </span>
             </div>
           </div>
 
-          {/* Receipt Table */}
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
-                      <Checkbox
-                        checked={currentPageReceipts.length > 0 && currentPageReceipts.every(receipt => selectedReceipts.has(receipt.id))}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            selectAllCurrentPage()
-                          } else {
-                            const newSelected = new Set(selectedReceipts)
-                            currentPageReceipts.forEach(receipt => {
-                              newSelected.delete(receipt.id)
-                            })
-                            setSelectedReceipts(newSelected)
-                          }
-                        }}
-                      />
-                    </TableHead>
-                    <TableHead>Receipt Number</TableHead>
-                    <TableHead>Invoice</TableHead>
-                    <TableHead>Student</TableHead>
-                    <TableHead>Grade</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Payment Method</TableHead>
-                    <TableHead>Channel</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {currentPageReceipts.map((receipt) => (
-                    <TableRow key={receipt.id}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedReceipts.has(receipt.id)}
-                          onCheckedChange={() => toggleReceiptSelection(receipt.id)}
-                        />
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {receipt.receiptNumber}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {receipt.invoiceNumber}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{receipt.studentName}</div>
-                          <div className="text-sm text-muted-foreground">{receipt.studentId}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{receipt.studentGrade}</Badge>
-                      </TableCell>
-                      <TableCell>฿{receipt.amount.toLocaleString()}</TableCell>
-                      <TableCell>{receipt.paymentMethod}</TableCell>
-                      <TableCell>{getPaymentChannelLabel(receipt.paymentChannel)}</TableCell>
-                      <TableCell>{format(receipt.transactionDate, "MMM dd, yyyy")}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button 
-                            size="sm" 
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <Button onClick={applyFilters}>
+              {t('paymentHistory.applyFilters')}
+            </Button>
+            <Button variant="outline" onClick={clearFilters}>
+              {t('paymentHistory.clearAll')}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Results Summary */}
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-muted-foreground">
+          {t('paymentHistory.showing')} {startIndex + 1}-{Math.min(endIndex, filteredReceipts.length)} {t('paymentHistory.of')} {filteredReceipts.length} receipts
+          {filteredReceipts.length !== receipts.length && (
+            <span> ({t('paymentHistory.filteredFrom')} {receipts.length} {t('paymentHistory.total')})</span>
+          )}
+        </p>
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-muted-foreground">{t('paymentHistory.show')}:</label>
+          <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
+            <SelectTrigger className="w-20">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+            </SelectContent>
+          </Select>
+          <span className="text-sm text-muted-foreground">{t('paymentHistory.perPage')}</span>
+        </div>
+      </div>
+      <div className="text-sm text-muted-foreground">
+        {t('paymentHistory.totalAmount')}: ฿{filteredReceipts.reduce((sum, receipt) => sum + receipt.amount, 0).toLocaleString()}
+      </div>
+
+      {/* Receipt Table */}
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Receipt Number</TableHead>
+                <TableHead>Invoice Number</TableHead>
+                <TableHead>{t('paymentHistory.student')}</TableHead>
+                <TableHead>{t('paymentHistory.parentName')}</TableHead>
+                <TableHead>{t('paymentHistory.grade')}</TableHead>
+                <TableHead>{t('paymentHistory.amount')}</TableHead>
+                <TableHead>Payment Date</TableHead>
+                <TableHead>Email Sent</TableHead>
+                <TableHead>NAV Sync</TableHead>
+                <TableHead>{t('paymentHistory.actions')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {currentPageReceipts.map((receipt) => (
+                <TableRow key={receipt.id}>
+                  <TableCell className="font-mono text-sm">
+                    {receipt.receiptNumber}
+                  </TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {receipt.invoiceNumber}
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{receipt.studentName}</div>
+                      <div className="text-sm text-muted-foreground">{receipt.studentId}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{receipt.payerName}</div>
+                      <div className="text-sm text-muted-foreground">{receipt.parentEmail}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{receipt.studentGrade}</Badge>
+                  </TableCell>
+                  <TableCell>฿{receipt.amount.toLocaleString()}</TableCell>
+                  <TableCell>{format(receipt.transactionDate, "MMM dd, yyyy")}</TableCell>
+                  <TableCell>
+                    {receipt.lastEmailSentDate ? (
+                      <div className="text-sm">
+                        {format(receipt.lastEmailSentDate, "MMM dd, yyyy")}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">Not sent</div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {receipt.navSyncStatus === "synced" && (
+                      <div>
+                        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Synced</Badge>
+                        {receipt.navSyncDate && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {format(receipt.navSyncDate, "MMM dd, yyyy")}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {receipt.navSyncStatus === "pending" && (
+                      <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pending</Badge>
+                    )}
+                    {receipt.navSyncStatus === "failed" && (
+                      <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Failed</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      {/* View PDF Button */}
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            size="sm"
                             variant="ghost"
-                            onClick={() => downloadReceipt(receipt.id)}
+                            onClick={() => handleViewPDF(receipt)}
+                            className="h-8 w-8 p-0"
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            onClick={() => downloadReceipt(receipt.id)}
-                          >
-                            <Download className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            onClick={() => resendReceipt(receipt.id)}
-                          >
-                            <Mail className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl">
+                          <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                              <Receipt className="w-5 h-5" />
+                              Receipt Details
+                            </DialogTitle>
+                            <DialogDescription>
+                              Complete receipt information for {receipt.receiptNumber}
+                            </DialogDescription>
+                          </DialogHeader>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious 
-                      onClick={() => goToPage(currentPage - 1)}
-                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-                  
-                  {[...Array(Math.min(5, totalPages))].map((_, index) => {
-                    const pageNumber = Math.max(1, currentPage - 2) + index
-                    if (pageNumber > totalPages) return null
-                    
-                    return (
-                      <PaginationItem key={pageNumber}>
-                        <PaginationLink
-                          onClick={() => goToPage(pageNumber)}
-                          isActive={currentPage === pageNumber}
-                          className="cursor-pointer"
-                        >
-                          {pageNumber}
-                        </PaginationLink>
-                      </PaginationItem>
-                    )
-                  })}
-                  
-                  {totalPages > 5 && currentPage < totalPages - 2 && (
-                    <PaginationItem>
-                      <PaginationEllipsis />
-                    </PaginationItem>
-                  )}
-                  
-                  <PaginationItem>
-                    <PaginationNext 
-                      onClick={() => goToPage(currentPage + 1)}
-                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          )}
-        </TabsContent>
+                          <div className="space-y-6">
+                            {/* Payment Summary */}
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h3 className="font-semibold text-lg">฿{receipt.amount.toLocaleString()}</h3>
+                                <p className="text-sm text-muted-foreground">{receipt.paymentDescription}</p>
+                              </div>
+                              <div className="text-right">
+                                <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Paid</Badge>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {format(receipt.transactionDate, "MMM dd, yyyy 'at' HH:mm")}
+                                </p>
+                              </div>
+                            </div>
 
-        <TabsContent value="whitelist">
-          <InternalEmailManagement 
-            title="Tuition Receipt Email Whitelist"
-            description="Manage internal staff emails who receive tuition receipt notifications"
-          />
-        </TabsContent>
-      </Tabs>
+                            <Separator />
+
+                            {/* Student Information */}
+                            <div className="grid grid-cols-2 gap-6">
+                              <div>
+                                <h4 className="font-medium mb-3">{t('paymentHistory.studentInformation')}</h4>
+                                <div className="space-y-2">
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">{t('paymentHistory.studentName')}</p>
+                                    <p className="font-medium">{receipt.studentName}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">{t('paymentHistory.studentId')}</p>
+                                    <p className="font-mono text-sm">{receipt.studentId}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">{t('paymentHistory.gradeLevel')}</p>
+                                    <Badge variant="secondary">{receipt.studentGrade}</Badge>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div>
+                                <h4 className="font-medium mb-3">{t('paymentHistory.paymentInformation')}</h4>
+                                <div className="space-y-2">
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">{t('paymentHistory.paymentMethod')}</p>
+                                    <div className="flex items-center gap-2">
+                                      <CreditCard className="w-4 h-4" />
+                                      <span>{receipt.paymentMethod}</span>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">{t('paymentHistory.paymentChannel')}</p>
+                                    <p>{receipt.paymentChannel}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">{t('paymentHistory.payerName')}</p>
+                                    <p className="font-medium">{receipt.payerName}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <Separator />
+
+                            {/* Transaction Details */}
+                            <div>
+                              <h4 className="font-medium mb-3">{t('paymentHistory.transactionDetails')}</h4>
+                              <div className="grid grid-cols-1 gap-4">
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Receipt Number</p>
+                                  <p className="font-mono text-sm">{receipt.receiptNumber}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Invoice Number</p>
+                                  <p className="font-mono text-sm">{receipt.invoiceNumber}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">{t('paymentHistory.referenceNumber')}</p>
+                                  <p className="font-mono text-sm">{receipt.referenceNumber || "N/A"}</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex justify-between pt-4">
+                              <Button
+                                variant="outline"
+                                onClick={() => downloadReceipt(receipt)}
+                                className="flex items-center gap-2"
+                              >
+                                <Download className="w-4 h-4" />
+                                Download Receipt
+                              </Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+
+                      {/* Send Email Button */}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleSendEmail(receipt)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Mail className="w-4 h-4" />
+                      </Button>
+
+                      {/* Download Receipt Button */}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDownloadReceipt(receipt)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+
+                      {/* View Transaction Button */}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleViewTransaction(receipt)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </Button>
+              </PaginationItem>
+
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNumber
+                if (totalPages <= 5) {
+                  pageNumber = i + 1
+                } else if (currentPage <= 3) {
+                  pageNumber = i + 1
+                } else if (currentPage >= totalPages - 2) {
+                  pageNumber = totalPages - 4 + i
+                } else {
+                  pageNumber = currentPage - 2 + i
+                }
+
+                return (
+                  <PaginationItem key={pageNumber}>
+                    <PaginationLink
+                      onClick={() => handlePageChange(pageNumber)}
+                      isActive={currentPage === pageNumber}
+                    >
+                      {pageNumber}
+                    </PaginationLink>
+                  </PaginationItem>
+                )
+              })}
+
+              {totalPages > 5 && currentPage < totalPages - 2 && (
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              )}
+
+              <PaginationItem>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
     </div>
   )
 }

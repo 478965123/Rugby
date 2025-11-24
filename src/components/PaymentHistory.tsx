@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog"
 import { Separator } from "./ui/separator"
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "./ui/pagination"
-import { CalendarIcon, Search, Download, Filter, Eye, Receipt, CreditCard, ChevronLeft, ChevronRight } from "lucide-react"
+import { CalendarIcon, Search, Download, Filter, Eye, Receipt, CreditCard, ChevronLeft, ChevronRight, Mail, ExternalLink } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from "sonner@2.0.3"
 import { StatusFilter, PaymentStatus, getStatusBadge, PaymentChannelFilter, PaymentChannel, getPaymentChannelLabel } from "./StatusFilter"
@@ -29,7 +29,8 @@ interface PaymentRecord {
   paymentMethod: string
   paymentChannel: "credit_card" | "qr_payment" | "counter_bank"
   payerName: string
-  status: "paid" | "partial" | "unpaid" | "cancelled" | "overdue"
+  parentEmail: string
+  status: "paid" | "pending" | "overdue" | "cancelled"
   transactionDate: Date
   parentType?: "internal" | "external"
   referenceNumber?: string
@@ -47,7 +48,7 @@ const generateMockPayments = (): PaymentRecord[] => {
   const paymentMethods = ["Credit Card", "PromptPay", "Bank Counter", "Bank Transfer", "Cash"]
   const paymentChannels: ("credit_card" | "qr_payment" | "counter_bank")[] = ["credit_card", "qr_payment", "counter_bank"]
   const payerNames = ["Mr. John Smith", "Mrs. Sarah Johnson", "Mr. David Williams", "Ms. Emily Brown", "Mr. Michael Davis", "Mrs. Lisa Garcia", "Mr. James Wilson", "Ms. Maria Rodriguez"]
-  const statuses: ("paid" | "partial" | "unpaid" | "cancelled" | "overdue")[] = ["paid", "paid", "paid", "partial", "unpaid", "cancelled", "overdue"]
+  const statuses: ("paid" | "pending" | "overdue" | "cancelled")[] = ["paid", "paid", "paid", "pending", "pending", "cancelled", "overdue"]
 
   const payments: PaymentRecord[] = []
 
@@ -80,6 +81,8 @@ const generateMockPayments = (): PaymentRecord[] => {
     const date = new Date()
     date.setDate(date.getDate() - Math.floor(Math.random() * 90))
 
+    const parentEmail = `${payerName.split(' ')[1].toLowerCase()}@example.com`
+
     payments.push({
       id: i.toString(),
       invoiceNumber: `INV-2025-${String(i).padStart(6, '0')}`,
@@ -93,6 +96,7 @@ const generateMockPayments = (): PaymentRecord[] => {
       paymentMethod,
       paymentChannel,
       payerName,
+      parentEmail,
       status,
       transactionDate: date,
       parentType: Math.random() > 0.7 ? "external" : "internal", // 30% external, 70% internal
@@ -101,8 +105,7 @@ const generateMockPayments = (): PaymentRecord[] => {
       dueDate: new Date(date.getTime() + 15 * 24 * 60 * 60 * 1000), // 15 days after transaction date
       notes: status === "cancelled" ? "Payment cancelled by parent request" :
              status === "overdue" ? "Payment overdue - reminder sent" :
-             status === "unpaid" ? "Payment not yet received" :
-             status === "partial" ? "Partial payment received, balance pending" :
+             status === "pending" ? "Payment pending - awaiting confirmation" :
              "Payment completed successfully"
     })
   }
@@ -122,11 +125,8 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
   const [filteredPayments, setFilteredPayments] = useState<PaymentRecord[]>(mockPayments)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<PaymentStatus>("all")
-  const [paymentTypeFilter, setPaymentTypeFilter] = useState("all")
   const [gradeFilter, setGradeFilter] = useState("all")
-  const [roomFilter, setRoomFilter] = useState("all")
   const [schoolLevelFilter, setSchoolLevelFilter] = useState("all")
-  const [paymentChannelFilter, setPaymentChannelFilter] = useState<PaymentChannel>("all")
   const [dateFrom, setDateFrom] = useState<Date | null>(null)
   const [dateTo, setDateTo] = useState<Date | null>(null)
   const [selectedPayment, setSelectedPayment] = useState<PaymentRecord | null>(null)
@@ -134,6 +134,27 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
+
+  // Action handlers
+  const handleViewPDF = (payment: PaymentRecord) => {
+    setSelectedPayment(payment)
+    // In real app, this would open the PDF viewer dialog
+  }
+
+  const handleSendEmail = (payment: PaymentRecord) => {
+    toast.success(`Email sent to ${payment.parentEmail}`)
+    // In real app, this would trigger email sending API
+  }
+
+  const handleDownloadInvoice = (payment: PaymentRecord) => {
+    toast.success(`Downloading invoice ${payment.invoiceNumber}`)
+    // In real app, this would trigger invoice PDF download
+  }
+
+  const handleViewTransaction = (payment: PaymentRecord) => {
+    toast.info(`Viewing transaction for invoice ${payment.invoiceNumber}`)
+    // In real app, this would navigate to transaction details page
+  }
 
   const applyFilters = () => {
     let filtered = payments
@@ -150,24 +171,12 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
       filtered = filtered.filter(payment => payment.status === statusFilter)
     }
 
-    if (paymentTypeFilter !== "all") {
-      filtered = filtered.filter(payment => payment.paymentType === paymentTypeFilter)
-    }
-
     if (gradeFilter !== "all") {
       filtered = filtered.filter(payment => payment.studentGrade === gradeFilter)
     }
 
-    if (roomFilter !== "all") {
-      filtered = filtered.filter(payment => payment.studentRoom === roomFilter)
-    }
-
     if (schoolLevelFilter !== "all") {
       filtered = filtered.filter(payment => payment.schoolLevel === schoolLevelFilter)
-    }
-
-    if (paymentChannelFilter !== "all") {
-      filtered = filtered.filter(payment => payment.paymentChannel === paymentChannelFilter)
     }
 
     if (dateFrom) {
@@ -185,11 +194,8 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
   const clearFilters = () => {
     setSearchTerm("")
     setStatusFilter("all")
-    setPaymentTypeFilter("all")
     setGradeFilter("all")
-    setRoomFilter("all")
     setSchoolLevelFilter("all")
-    setPaymentChannelFilter("all")
     setDateFrom(null)
     setDateTo(null)
     setFilteredPayments(payments)
@@ -396,25 +402,11 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
             </div>
 
             {/* Second Row: Main Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <StatusFilter
                 selectedStatus={statusFilter}
                 onStatusChange={setStatusFilter}
               />
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t('paymentHistory.paymentType')}</label>
-                <Select value={paymentTypeFilter} onValueChange={setPaymentTypeFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('paymentHistory.allTypes')}</SelectItem>
-                    <SelectItem value="yearly">{t('paymentHistory.yearly')}</SelectItem>
-                    <SelectItem value="termly">{t('paymentHistory.termly')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">{t('paymentHistory.schoolLevel')}</label>
@@ -445,26 +437,6 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t('paymentHistory.room')}</label>
-                <Select value={roomFilter} onValueChange={setRoomFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('paymentHistory.allRooms')}</SelectItem>
-                    {uniqueRooms.map((room) => (
-                      <SelectItem key={room} value={room}>{room}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <PaymentChannelFilter
-                selectedChannel={paymentChannelFilter}
-                onChannelChange={setPaymentChannelFilter}
-              />
             </div>
 
             {/* Third Row: Date Range and Buttons */}
@@ -553,21 +525,31 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
               <TableRow>
                 <TableHead>{t('paymentHistory.invoiceNumber')}</TableHead>
                 <TableHead>{t('paymentHistory.student')}</TableHead>
+                <TableHead>{t('paymentHistory.parentName')}</TableHead>
                 <TableHead>{t('paymentHistory.grade')}</TableHead>
-                <TableHead>{t('paymentHistory.room')}</TableHead>
                 <TableHead>{t('paymentHistory.amount')}</TableHead>
-                <TableHead>{t('paymentHistory.type')}</TableHead>
-                <TableHead>{t('paymentHistory.channel')}</TableHead>
                 <TableHead>{t('paymentHistory.status')}</TableHead>
-                <TableHead>{t('paymentHistory.date')}</TableHead>
+                <TableHead>{t('paymentHistory.dueDate')}</TableHead>
                 <TableHead>{t('paymentHistory.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {currentPagePayments.map((payment) => (
-                <TableRow key={payment.id}>
+              {currentPagePayments.map((payment) => {
+                const isOverdue = payment.dueDate && payment.dueDate < new Date() && payment.status !== "paid"
+                return (
+                <TableRow
+                  key={payment.id}
+                  className={isOverdue ? "bg-red-50 border-l-4 border-l-red-500" : ""}
+                >
                   <TableCell className="font-mono text-sm">
-                    {payment.invoiceNumber}
+                    <div className="flex items-center gap-2">
+                      {isOverdue && (
+                        <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                      <span>{payment.invoiceNumber}</span>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div>
@@ -576,27 +558,44 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
                     </div>
                   </TableCell>
                   <TableCell>
+                    <div>
+                      <div className="font-medium">{payment.payerName}</div>
+                      <div className="text-sm text-muted-foreground">{payment.parentEmail}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
                     <Badge variant="secondary">{payment.studentGrade}</Badge>
                   </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{payment.studentRoom}</Badge>
-                  </TableCell>
                   <TableCell>฿{payment.amount.toLocaleString()}</TableCell>
-                  <TableCell>{getPaymentTypeBadge(payment.paymentType)}</TableCell>
-                  <TableCell>{getPaymentChannelLabel(payment.paymentChannel, t)}</TableCell>
                   <TableCell>{getStatusBadge(payment.status, t)}</TableCell>
-                  <TableCell>{format(payment.transactionDate, "MMM dd, yyyy")}</TableCell>
                   <TableCell>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => setSelectedPayment(payment)}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                      </DialogTrigger>
+                    {payment.dueDate ? (
+                      <div className={isOverdue ? "text-red-600" : ""}>
+                        <div>{format(payment.dueDate, "MMM dd, yyyy")}</div>
+                        {isOverdue && (
+                          <div className="text-xs text-red-600">
+                            {Math.ceil((new Date().getTime() - payment.dueDate.getTime()) / (1000 * 60 * 60 * 24))} days overdue
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      "N/A"
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      {/* View PDF Button */}
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleViewPDF(payment)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </DialogTrigger>
                       <DialogContent className="max-w-2xl">
                         <DialogHeader>
                           <DialogTitle className="flex items-center gap-2">
@@ -648,10 +647,6 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
                             <div>
                               <h4 className="font-medium mb-3">{t('paymentHistory.paymentInformation')}</h4>
                               <div className="space-y-2">
-                                <div>
-                                  <p className="text-sm text-muted-foreground">{t('paymentHistory.paymentType')}</p>
-                                  <div>{getPaymentTypeBadge(payment.paymentType)}</div>
-                                </div>
                                 <div>
                                   <p className="text-sm text-muted-foreground">{t('paymentHistory.paymentMethod')}</p>
                                   <div className="flex items-center gap-2">
@@ -720,9 +715,41 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
                         </div>
                       </DialogContent>
                     </Dialog>
+
+                    {/* Send Email Button */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleSendEmail(payment)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Mail className="w-4 h-4" />
+                    </Button>
+
+                    {/* Download Invoice Button */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleDownloadInvoice(payment)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Download className="w-4 h-4" />
+                    </Button>
+
+                    {/* View Transaction Button */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleViewTransaction(payment)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </Button>
+                  </div>
                   </TableCell>
                 </TableRow>
-              ))}
+                )
+              })}
             </TableBody>
           </Table>
         </CardContent>
