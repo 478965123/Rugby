@@ -32,11 +32,17 @@ interface PaymentRecord {
   parentEmail: string
   status: "paid" | "pending" | "overdue" | "cancelled"
   transactionDate: Date
+  lastEmailSentDate?: Date
+  navSyncStatus?: "synced" | "pending" | "failed"
+  navSyncDate?: Date
   parentType?: "internal" | "external"
   referenceNumber?: string
   paymentDescription?: string
   dueDate?: Date
   notes?: string
+  creditNoteUsed?: boolean
+  creditNoteNumber?: string
+  creditNoteAmount?: number
 }
 
 // Generate mock payments data with more entries for pagination testing
@@ -83,6 +89,35 @@ const generateMockPayments = (): PaymentRecord[] => {
 
     const parentEmail = `${payerName.split(' ')[1].toLowerCase()}@example.com`
 
+    // Generate NAV sync status for paid invoices
+    let navSyncStatus: "synced" | "pending" | "failed" | undefined
+    let navSyncDate: Date | undefined
+    let lastEmailSentDate: Date | undefined
+
+    if (status === "paid") {
+      // All paid invoices are synced
+      navSyncStatus = "synced"
+      navSyncDate = new Date(date)
+      navSyncDate.setHours(navSyncDate.getHours() + Math.floor(Math.random() * 24) + 1)
+
+      // 70% of synced invoices have email sent, 30% haven't sent email yet
+      if (Math.random() > 0.3) {
+        lastEmailSentDate = new Date(navSyncDate)
+        lastEmailSentDate.setDate(lastEmailSentDate.getDate() + Math.floor(Math.random() * 7) + 1)
+      }
+    }
+
+    // Generate credit note information (20% of paid invoices use credit notes)
+    let creditNoteUsed = false
+    let creditNoteNumber: string | undefined
+    let creditNoteAmount: number | undefined
+
+    if (status === "paid" && Math.random() > 0.8) {
+      creditNoteUsed = true
+      creditNoteNumber = `CN-2025-${String(Math.floor(Math.random() * 1000)).padStart(6, '0')}`
+      creditNoteAmount = Math.floor(Math.random() * 10000) + 1000 // Random amount between 1000-11000
+    }
+
     payments.push({
       id: i.toString(),
       invoiceNumber: `INV-2025-${String(i).padStart(6, '0')}`,
@@ -99,6 +134,9 @@ const generateMockPayments = (): PaymentRecord[] => {
       parentEmail,
       status,
       transactionDate: date,
+      lastEmailSentDate,
+      navSyncStatus,
+      navSyncDate,
       parentType: Math.random() > 0.7 ? "external" : "internal", // 30% external, 70% internal
       referenceNumber: `REF-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
       paymentDescription: paymentType === "yearly" ? "Annual tuition fee payment for academic year 2025-2026" : "Term 1 tuition fee payment",
@@ -106,7 +144,10 @@ const generateMockPayments = (): PaymentRecord[] => {
       notes: status === "cancelled" ? "Payment cancelled by parent request" :
              status === "overdue" ? "Payment overdue - reminder sent" :
              status === "pending" ? "Payment pending - awaiting confirmation" :
-             "Payment completed successfully"
+             "Payment completed successfully",
+      creditNoteUsed,
+      creditNoteNumber,
+      creditNoteAmount
     })
   }
 
@@ -121,19 +162,36 @@ interface PaymentHistoryProps {
 
 export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
   const { t } = useTranslation()
-  const [payments] = useState<PaymentRecord[]>(mockPayments)
-  const [filteredPayments, setFilteredPayments] = useState<PaymentRecord[]>(mockPayments)
+  const [payments, setPayments] = useState<PaymentRecord[]>(mockPayments)
+  const [filteredPayments, setFilteredPayments] = useState<PaymentRecord[]>(
+    mockPayments.filter(p => p.navSyncStatus !== undefined)
+  )
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState<PaymentStatus>("all")
+  const [navSyncFilter, setNavSyncFilter] = useState<"all" | "synced" | "pending" | "failed">("all")
+  const [emailSentFilter, setEmailSentFilter] = useState<"all" | "sent" | "not_sent">("all")
   const [gradeFilter, setGradeFilter] = useState("all")
   const [schoolLevelFilter, setSchoolLevelFilter] = useState("all")
   const [dateFrom, setDateFrom] = useState<Date | null>(null)
   const [dateTo, setDateTo] = useState<Date | null>(null)
   const [selectedPayment, setSelectedPayment] = useState<PaymentRecord | null>(null)
 
+  // Email sending limit tracking
+  const DAILY_EMAIL_LIMIT = 500
+  const [emailsSentToday, setEmailsSentToday] = useState(235)
+  const [lastResetDate, setLastResetDate] = useState(new Date().toDateString())
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
+
+  // Reset email counter at midnight
+  const checkAndResetEmailCounter = () => {
+    const today = new Date().toDateString()
+    if (today !== lastResetDate) {
+      setEmailsSentToday(0)
+      setLastResetDate(today)
+    }
+  }
 
   // Action handlers
   const handleViewPDF = (payment: PaymentRecord) => {
@@ -142,6 +200,30 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
   }
 
   const handleSendEmail = (payment: PaymentRecord) => {
+    // Check and reset email counter if needed
+    checkAndResetEmailCounter()
+
+    // Check if daily limit reached
+    if (emailsSentToday >= DAILY_EMAIL_LIMIT) {
+      toast.error(`Daily email limit reached (${DAILY_EMAIL_LIMIT} emails). Please try again tomorrow.`)
+      return
+    }
+
+    // Update lastEmailSentDate to current date
+    const updatedPayments = payments.map(p =>
+      p.id === payment.id ? { ...p, lastEmailSentDate: new Date() } : p
+    )
+    setPayments(updatedPayments)
+
+    // Also update filtered payments
+    const updatedFilteredPayments = filteredPayments.map(p =>
+      p.id === payment.id ? { ...p, lastEmailSentDate: new Date() } : p
+    )
+    setFilteredPayments(updatedFilteredPayments)
+
+    // Increment email counter
+    setEmailsSentToday(prev => prev + 1)
+
     toast.success(`Email sent to ${payment.parentEmail}`)
     // In real app, this would trigger email sending API
   }
@@ -159,16 +241,27 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
   const applyFilters = () => {
     let filtered = payments
 
+    // Only show payments with NAV sync status
+    filtered = filtered.filter(payment => payment.navSyncStatus !== undefined)
+
     if (searchTerm) {
-      filtered = filtered.filter(payment => 
+      filtered = filtered.filter(payment =>
         payment.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         payment.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         payment.studentId.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
-    if (statusFilter !== "all") {
-      filtered = filtered.filter(payment => payment.status === statusFilter)
+    if (navSyncFilter !== "all") {
+      filtered = filtered.filter(payment => payment.navSyncStatus === navSyncFilter)
+    }
+
+    if (emailSentFilter !== "all") {
+      if (emailSentFilter === "sent") {
+        filtered = filtered.filter(payment => payment.lastEmailSentDate !== undefined)
+      } else {
+        filtered = filtered.filter(payment => payment.lastEmailSentDate === undefined)
+      }
     }
 
     if (gradeFilter !== "all") {
@@ -193,12 +286,13 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
 
   const clearFilters = () => {
     setSearchTerm("")
-    setStatusFilter("all")
+    setNavSyncFilter("all")
+    setEmailSentFilter("all")
     setGradeFilter("all")
     setSchoolLevelFilter("all")
     setDateFrom(null)
     setDateTo(null)
-    setFilteredPayments(payments)
+    setFilteredPayments(payments.filter(p => p.navSyncStatus !== undefined))
     setCurrentPage(1)
   }
 
@@ -360,6 +454,9 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
     document.body.removeChild(element)
   }
 
+  const emailPercentage = (emailsSentToday / DAILY_EMAIL_LIMIT) * 100
+  const remainingEmails = DAILY_EMAIL_LIMIT - emailsSentToday
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -402,11 +499,60 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
             </div>
 
             {/* Second Row: Main Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <StatusFilter
-                selectedStatus={statusFilter}
-                onStatusChange={setStatusFilter}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">NAV Sync Status</label>
+                <Select value={navSyncFilter} onValueChange={setNavSyncFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="synced">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-600"></div>
+                        Synced
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="pending">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-yellow-600"></div>
+                        Pending
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="failed">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-red-600"></div>
+                        Failed
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Email Sent</label>
+                <Select value={emailSentFilter} onValueChange={setEmailSentFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="sent">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-600"></div>
+                        Sent
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="not_sent">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                        Not Sent
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">{t('paymentHistory.schoolLevel')}</label>
@@ -513,7 +659,7 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
           </div>
         </div>
         <div className="text-sm text-muted-foreground">
-          {t('paymentHistory.totalAmount')}: ฿{filteredPayments.reduce((sum, payment) => sum + payment.amount, 0).toLocaleString()}
+          {t('paymentHistory.totalAmount')}: ฿{filteredPayments.reduce((sum, payment) => sum + payment.amount, 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
       </div>
 
@@ -528,8 +674,8 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
                 <TableHead>{t('paymentHistory.parentName')}</TableHead>
                 <TableHead>{t('paymentHistory.grade')}</TableHead>
                 <TableHead>{t('paymentHistory.amount')}</TableHead>
-                <TableHead>{t('paymentHistory.status')}</TableHead>
-                <TableHead>{t('paymentHistory.dueDate')}</TableHead>
+                <TableHead>Email Sent</TableHead>
+                <TableHead>NAV Sync</TableHead>
                 <TableHead>{t('paymentHistory.actions')}</TableHead>
               </TableRow>
             </TableHeader>
@@ -566,20 +712,35 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
                   <TableCell>
                     <Badge variant="secondary">{payment.studentGrade}</Badge>
                   </TableCell>
-                  <TableCell>฿{payment.amount.toLocaleString()}</TableCell>
-                  <TableCell>{getStatusBadge(payment.status, t)}</TableCell>
+                  <TableCell>฿{payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                   <TableCell>
-                    {payment.dueDate ? (
-                      <div className={isOverdue ? "text-red-600" : ""}>
-                        <div>{format(payment.dueDate, "MMM dd, yyyy")}</div>
-                        {isOverdue && (
-                          <div className="text-xs text-red-600">
-                            {Math.ceil((new Date().getTime() - payment.dueDate.getTime()) / (1000 * 60 * 60 * 24))} days overdue
+                    {payment.lastEmailSentDate ? (
+                      <div className="text-sm">
+                        {format(payment.lastEmailSentDate, "MMM dd, yyyy")}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">Not sent</div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {payment.navSyncStatus === "synced" && (
+                      <div>
+                        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Synced</Badge>
+                        {payment.navSyncDate && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {format(payment.navSyncDate, "MMM dd, yyyy")}
                           </div>
                         )}
                       </div>
-                    ) : (
-                      "N/A"
+                    )}
+                    {payment.navSyncStatus === "pending" && (
+                      <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pending</Badge>
+                    )}
+                    {payment.navSyncStatus === "failed" && (
+                      <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Failed</Badge>
+                    )}
+                    {!payment.navSyncStatus && (
+                      <span className="text-sm text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell>
@@ -611,12 +772,11 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
                           {/* Payment Summary */}
                           <div className="flex justify-between items-start">
                             <div>
-                              <h3 className="font-semibold text-lg">฿{payment.amount.toLocaleString()}</h3>
+                              <h3 className="font-semibold text-lg">฿{payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
                               <p className="text-sm text-muted-foreground">{payment.paymentDescription}</p>
                             </div>
                             <div className="text-right">
-                              {getStatusBadge(payment.status, t)}
-                              <p className="text-sm text-muted-foreground mt-1">
+                              <p className="text-sm text-muted-foreground">
                                 {format(payment.transactionDate, "MMM dd, yyyy 'at' HH:mm")}
                               </p>
                             </div>
@@ -666,6 +826,18 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
                                   <p className="text-sm text-muted-foreground">{t('paymentHistory.dueDate')}</p>
                                   <p>{payment.dueDate ? format(payment.dueDate, "MMM dd, yyyy") : "N/A"}</p>
                                 </div>
+                                {payment.creditNoteUsed && (
+                                  <>
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">Credit Note</p>
+                                      <p className="font-mono text-sm">{payment.creditNoteNumber}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">Credit Amount</p>
+                                      <p className="font-medium text-green-600">-฿{payment.creditNoteAmount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                    </div>
+                                  </>
+                                )}
                               </div>
                             </div>
                           </div>

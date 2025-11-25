@@ -222,9 +222,9 @@ export function PaymentTransactions() {
 
           {/* Filters Grid */}
           <div className="grid grid-cols-3 gap-4">
-            {/* Grade Level */}
+            {/* Year Group */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Grade Level</label>
+              <label className="text-sm font-medium">Year Group</label>
               <Select value={gradeFilter} onValueChange={setGradeFilter}>
                 <SelectTrigger>
                   <SelectValue />
@@ -361,7 +361,7 @@ export function PaymentTransactions() {
               <TableRow>
                 <TableHead>Invoice No.</TableHead>
                 <TableHead>Student</TableHead>
-                <TableHead>Grade</TableHead>
+                <TableHead>Year Group</TableHead>
                 <TableHead>Parent Email</TableHead>
                 <TableHead>Payment Channel</TableHead>
                 <TableHead>Status</TableHead>
@@ -446,7 +446,7 @@ export function PaymentTransactions() {
                                   <p className="font-mono text-sm">{transaction.studentId}</p>
                                 </div>
                                 <div>
-                                  <p className="text-sm text-muted-foreground">Grade Level</p>
+                                  <p className="text-sm text-muted-foreground">Year Group</p>
                                   <Badge variant="secondary">{transaction.studentGrade}</Badge>
                                 </div>
                                 <div>

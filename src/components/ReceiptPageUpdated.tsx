@@ -83,31 +83,38 @@ const generateMockReceipts = (): ReceiptRecord[] => {
 
     const parentEmail = `${payerName.split(' ')[1].toLowerCase()}@example.com`
 
-    // Generate lastEmailSentDate (70% of receipts have email sent, 30% have not)
-    let lastEmailSentDate: Date | undefined
-    if (Math.random() > 0.3) {
-      lastEmailSentDate = new Date(date)
-      lastEmailSentDate.setDate(lastEmailSentDate.getDate() + Math.floor(Math.random() * 7) + 1) // 1-7 days after transaction
-    }
-
     // Generate NAV sync status (80% synced, 15% pending, 5% failed)
     const rand = Math.random()
     let navSyncStatus: "synced" | "pending" | "failed"
     let navSyncDate: Date | undefined
+    let receiptNumber: string
+    let lastEmailSentDate: Date | undefined
 
     if (rand > 0.2) {
+      // Synced - has receipt number and may have email sent
       navSyncStatus = "synced"
       navSyncDate = new Date(date)
       navSyncDate.setHours(navSyncDate.getHours() + Math.floor(Math.random() * 24) + 1) // 1-24 hours after transaction
+      receiptNumber = `RCP-2025-${String(i).padStart(6, '0')}`
+
+      // 70% of synced receipts have email sent
+      if (Math.random() > 0.3) {
+        lastEmailSentDate = new Date(navSyncDate)
+        lastEmailSentDate.setDate(lastEmailSentDate.getDate() + Math.floor(Math.random() * 7) + 1) // 1-7 days after sync
+      }
     } else if (rand > 0.05) {
+      // Pending - no receipt number, no email
       navSyncStatus = "pending"
+      receiptNumber = "-"
     } else {
+      // Failed - no receipt number, no email
       navSyncStatus = "failed"
+      receiptNumber = "-"
     }
 
     receipts.push({
       id: i.toString(),
-      receiptNumber: `RCP-2025-${String(i).padStart(6, '0')}`,
+      receiptNumber,
       invoiceNumber: `INV-2025-${String(i).padStart(6, '0')}`,
       studentName: `${firstName} ${lastName}`,
       studentId: `ST${String(i).padStart(6, '0')}`,
@@ -147,9 +154,23 @@ export function ReceiptPageUpdated() {
   const [dateTo, setDateTo] = useState<Date | null>(null)
   const [selectedReceipt, setSelectedReceipt] = useState<ReceiptRecord | null>(null)
 
+  // Email sending limit tracking
+  const DAILY_EMAIL_LIMIT = 500
+  const [emailsSentToday, setEmailsSentToday] = useState(235)
+  const [lastResetDate, setLastResetDate] = useState(new Date().toDateString())
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
+
+  // Reset email counter at midnight
+  const checkAndResetEmailCounter = () => {
+    const today = new Date().toDateString()
+    if (today !== lastResetDate) {
+      setEmailsSentToday(0)
+      setLastResetDate(today)
+    }
+  }
 
   // Action handlers
   const handleViewPDF = (receipt: ReceiptRecord) => {
@@ -157,6 +178,21 @@ export function ReceiptPageUpdated() {
   }
 
   const handleSendEmail = (receipt: ReceiptRecord) => {
+    // Check and reset email counter if needed
+    checkAndResetEmailCounter()
+
+    // Check if daily limit reached
+    if (emailsSentToday >= DAILY_EMAIL_LIMIT) {
+      toast.error(`Daily email limit reached (${DAILY_EMAIL_LIMIT} emails). Please try again tomorrow.`)
+      return
+    }
+
+    // Check if receipt is synced to NAV
+    if (receipt.navSyncStatus !== "synced") {
+      toast.error("Cannot send email. Receipt must be synced to NAV first.")
+      return
+    }
+
     // Update lastEmailSentDate to current date
     const updatedReceipts = receipts.map(r =>
       r.id === receipt.id ? { ...r, lastEmailSentDate: new Date() } : r
@@ -169,10 +205,19 @@ export function ReceiptPageUpdated() {
     )
     setFilteredReceipts(updatedFilteredReceipts)
 
+    // Increment email counter
+    setEmailsSentToday(prev => prev + 1)
+
     toast.success(`Email sent to ${receipt.parentEmail}`)
   }
 
   const handleDownloadReceipt = (receipt: ReceiptRecord) => {
+    // Check if receipt is synced to NAV
+    if (receipt.navSyncStatus !== "synced") {
+      toast.error("Cannot download receipt. Receipt must be synced to NAV first.")
+      return
+    }
+
     toast.success(`Downloading receipt ${receipt.receiptNumber}`)
   }
 
@@ -249,6 +294,9 @@ export function ReceiptPageUpdated() {
   }
 
   const grades = ["Reception", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6", "Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12"]
+
+  const emailPercentage = (emailsSentToday / DAILY_EMAIL_LIMIT) * 100
+  const remainingEmails = DAILY_EMAIL_LIMIT - emailsSentToday
 
   return (
     <div className="space-y-6">
@@ -593,6 +641,7 @@ export function ReceiptPageUpdated() {
                         size="sm"
                         variant="ghost"
                         onClick={() => handleSendEmail(receipt)}
+                        disabled={receipt.navSyncStatus !== "synced"}
                         className="h-8 w-8 p-0"
                       >
                         <Mail className="w-4 h-4" />
@@ -603,6 +652,7 @@ export function ReceiptPageUpdated() {
                         size="sm"
                         variant="ghost"
                         onClick={() => handleDownloadReceipt(receipt)}
+                        disabled={receipt.navSyncStatus !== "synced"}
                         className="h-8 w-8 p-0"
                       >
                         <Download className="w-4 h-4" />

@@ -62,8 +62,8 @@ export function DebtReminderSettings() {
   })
 
   // Daily sending limit tracking
-  const dailyLimit = 10000
-  const messagesSentToday = 3247 // Mock data - in real app, this would come from backend
+  const dailyLimit = 500
+  const messagesSentToday = 235 // Mock data - in real app, this would come from backend
   const remainingMessages = dailyLimit - messagesSentToday
   const usagePercentage = (messagesSentToday / dailyLimit) * 100
 

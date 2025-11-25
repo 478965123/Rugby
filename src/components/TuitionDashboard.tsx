@@ -29,16 +29,16 @@ const getPaymentChannelData = (t: (key: string) => string) => [
 ]
 
 const top10GradeDebtData = [
-  { grade: "Grade 12", unpaid: 85, paid: 120 },
-  { grade: "Grade 11", unpaid: 78, paid: 115 },
-  { grade: "Grade 10", unpaid: 72, paid: 110 },
-  { grade: "Grade 9", unpaid: 68, paid: 105 },
-  { grade: "Grade 8", unpaid: 65, paid: 100 },
-  { grade: "Grade 7", unpaid: 58, paid: 95 },
-  { grade: "Grade 6", unpaid: 52, paid: 90 },
-  { grade: "Grade 5", unpaid: 48, paid: 85 },
-  { grade: "Grade 4", unpaid: 42, paid: 80 },
-  { grade: "Grade 3", unpaid: 38, paid: 75 }
+  { grade: "Year 12", unpaid: 85, paid: 120 },
+  { grade: "Year 11", unpaid: 78, paid: 115 },
+  { grade: "Year 10", unpaid: 72, paid: 110 },
+  { grade: "Year 9", unpaid: 68, paid: 105 },
+  { grade: "Year 8", unpaid: 65, paid: 100 },
+  { grade: "Year 7", unpaid: 58, paid: 95 },
+  { grade: "Year 6", unpaid: 52, paid: 90 },
+  { grade: "Year 5", unpaid: 48, paid: 85 },
+  { grade: "Year 4", unpaid: 42, paid: 80 },
+  { grade: "Year 3", unpaid: 38, paid: 75 }
 ]
 
 // Generate academic years (current year - 5 to current year + 1)
@@ -310,11 +310,11 @@ export function TuitionDashboard() {
         <CardContent>
           <div className="space-y-4">
             {[
-              { student: "John Smith", grade: "Grade 10", amount: "฿125,000", time: "2 hours ago" },
-              { student: "Sarah Wilson", grade: "Grade 8", amount: "฿42,000", time: "4 hours ago" },
-              { student: "Mike Johnson", grade: "Grade 11", amount: "฿125,000", time: "6 hours ago" },
-              { student: "Lisa Chen", grade: "Grade 9", amount: "฿42,000", time: "8 hours ago" },
-              { student: "David Brown", grade: "Grade 12", amount: "฿125,000", time: "1 day ago" }
+              { student: "John Smith", grade: "Year 10", amount: "฿125,000", time: "2 hours ago" },
+              { student: "Sarah Wilson", grade: "Year 8", amount: "฿42,000", time: "4 hours ago" },
+              { student: "Mike Johnson", grade: "Year 11", amount: "฿125,000", time: "6 hours ago" },
+              { student: "Lisa Chen", grade: "Year 9", amount: "฿42,000", time: "8 hours ago" },
+              { student: "David Brown", grade: "Year 12", amount: "฿125,000", time: "1 day ago" }
             ].map((payment, index) => (
               <div key={index} className="flex items-center justify-between border-b pb-2">
                 <div>
