@@ -1,5 +1,6 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
+import { Login } from "./components/Login"
 import {
   Sidebar,
   SidebarContent,
@@ -16,13 +17,13 @@ import {
 import { Toaster } from "./components/ui/sonner"
 import { Button } from "./components/ui/button"
 import { LanguageSwitcher } from "./components/LanguageSwitcher"
-import { 
-  BarChart3, 
-  Calendar, 
-  FileText, 
-  Users, 
-  Settings, 
-  CreditCard, 
+import {
+  BarChart3,
+  Calendar,
+  FileText,
+  Users,
+  Settings,
+  CreditCard,
   GraduationCap,
   Receipt,
   Bell,
@@ -47,7 +48,8 @@ import {
   FileCheck,
   FileText as FileInvoice,
 
-  Settings2
+  Settings2,
+  LogOut
 } from "lucide-react"
 import { TuitionDashboard } from "./components/TuitionDashboard"
 import { TuitionTermSettings } from "./components/TuitionTermSettings"
@@ -97,10 +99,29 @@ const menuItems = {
 
 export default function App() {
   const { t } = useTranslation()
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [activeSection, setActiveSection] = useState("tuition-dashboard")
   const [subPageHistory, setSubPageHistory] = useState<string[]>([])
 
   const [subPageParams, setSubPageParams] = useState<any>(null)
+
+  // Check authentication status on mount
+  useEffect(() => {
+    const authStatus = localStorage.getItem("isAuthenticated")
+    if (authStatus === "true") {
+      setIsAuthenticated(true)
+    }
+  }, [])
+
+  const handleLoginSuccess = () => {
+    localStorage.setItem("isAuthenticated", "true")
+    setIsAuthenticated(true)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem("isAuthenticated")
+    setIsAuthenticated(false)
+  }
   
   // Global View Modal state (keeping for backward compatibility)
   const [isGlobalViewModalOpen, setIsGlobalViewModalOpen] = useState(false)
@@ -215,6 +236,16 @@ export default function App() {
     }
   }
 
+  // Show login page if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <>
+        <Login onLoginSuccess={handleLoginSuccess} />
+        <Toaster position="top-right" richColors />
+      </>
+    )
+  }
+
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full">
@@ -321,6 +352,15 @@ export default function App() {
               </h1>
             </div>
             <LanguageSwitcher />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              className="flex items-center gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </Button>
 
           </header>
           
