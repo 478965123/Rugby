@@ -6,6 +6,7 @@ import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 import { Mail, KeyRound, ArrowRight, ArrowLeft, Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import rugbyLogo from "/rugby-school-logo.jpeg"
 
 interface LoginProps {
   onLoginSuccess: () => void
@@ -104,13 +105,11 @@ export function Login({ onLoginSuccess }: LoginProps) {
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center">
-              {step === "email" ? (
-                <Mail className="w-8 h-8 text-primary-foreground" />
-              ) : (
-                <KeyRound className="w-8 h-8 text-primary-foreground" />
-              )}
-            </div>
+            <img
+              src={rugbyLogo}
+              alt="Rugby School Thailand"
+              className="h-24 w-auto object-contain"
+            />
           </div>
           <CardTitle className="text-2xl font-bold">
             {step === "email" ? "Welcome Back" : "Verify OTP"}
