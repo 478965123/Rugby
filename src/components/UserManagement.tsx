@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Badge } from "./ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog"
 import { Label } from "./ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import {
   Search,
   Filter,
@@ -19,9 +20,11 @@ import {
   Phone,
   Calendar,
   CheckCircle,
-  XCircle
+  XCircle,
+  RefreshCw
 } from "lucide-react"
 import { toast } from "sonner"
+import { format } from "date-fns"
 
 interface User {
   id: string
@@ -34,6 +37,19 @@ interface User {
   status: "active" | "inactive"
   createdAt: Date
   lastLogin?: Date
+}
+
+interface StudentParent {
+  id: string
+  studentId: string
+  studentName: string
+  studentGrade: string
+  parentName: string
+  parentEmail: string
+  parentPhone: string
+  relationship: "Father" | "Mother" | "Guardian"
+  syncedAt: Date
+  navId: string
 }
 
 const mockUsers: User[] = [
@@ -63,6 +79,69 @@ const mockUsers: User[] = [
   }
 ]
 
+const mockStudents: StudentParent[] = [
+  {
+    id: "1",
+    studentId: "ST000001",
+    studentName: "Emma Johnson",
+    studentGrade: "Year 5",
+    parentName: "Mrs. Sarah Johnson",
+    parentEmail: "sarah.johnson@example.com",
+    parentPhone: "+66 81 234 5678",
+    relationship: "Mother",
+    syncedAt: new Date("2025-11-20T14:30:00"),
+    navId: "NAV-P-00001"
+  },
+  {
+    id: "2",
+    studentId: "ST000002",
+    studentName: "Lucas Williams",
+    studentGrade: "Year 3",
+    parentName: "Mr. David Williams",
+    parentEmail: "david.williams@example.com",
+    parentPhone: "+66 85 678 9012",
+    relationship: "Father",
+    syncedAt: new Date("2025-11-20T14:30:00"),
+    navId: "NAV-P-00002"
+  },
+  {
+    id: "3",
+    studentId: "ST000003",
+    studentName: "Sophia Brown",
+    studentGrade: "Year 7",
+    parentName: "Mrs. Emily Brown",
+    parentEmail: "emily.brown@example.com",
+    parentPhone: "+66 82 345 6789",
+    relationship: "Mother",
+    syncedAt: new Date("2025-11-20T14:30:00"),
+    navId: "NAV-P-00003"
+  },
+  {
+    id: "4",
+    studentId: "ST000004",
+    studentName: "James Miller",
+    studentGrade: "Year 10",
+    parentName: "Mr. Michael Miller",
+    parentEmail: "michael.miller@example.com",
+    parentPhone: "+66 89 012 3456",
+    relationship: "Father",
+    syncedAt: new Date("2025-11-20T14:30:00"),
+    navId: "NAV-P-00004"
+  },
+  {
+    id: "5",
+    studentId: "ST000005",
+    studentName: "Olivia Davis",
+    studentGrade: "Year 2",
+    parentName: "Mrs. Lisa Davis",
+    parentEmail: "lisa.davis@example.com",
+    parentPhone: "+66 86 789 0123",
+    relationship: "Mother",
+    syncedAt: new Date("2025-11-20T14:30:00"),
+    navId: "NAV-P-00005"
+  }
+]
+
 const roleLabels = {
   admin: "Administrator",
   viewer: "Viewer"
@@ -74,6 +153,13 @@ export function UserManagement() {
   const [searchTerm, setSearchTerm] = useState("")
   const [roleFilter, setRoleFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
+
+  // Students tab states
+  const [students, setStudents] = useState<StudentParent[]>(mockStudents)
+  const [filteredStudents, setFilteredStudents] = useState<StudentParent[]>(mockStudents)
+  const [studentSearchTerm, setStudentSearchTerm] = useState("")
+  const [lastSyncDate, setLastSyncDate] = useState<Date>(new Date("2025-11-20T14:30:00"))
+  const [activeTab, setActiveTab] = useState("users")
 
   // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -120,6 +206,36 @@ export function UserManagement() {
     setRoleFilter("all")
     setStatusFilter("all")
     setFilteredUsers(users)
+  }
+
+  // Student filter functions
+  const applyStudentFilters = () => {
+    let filtered = students
+
+    if (studentSearchTerm) {
+      filtered = filtered.filter(student =>
+        student.studentName.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+        student.studentId.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+        student.parentName.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+        student.parentEmail.toLowerCase().includes(studentSearchTerm.toLowerCase())
+      )
+    }
+
+    setFilteredStudents(filtered)
+  }
+
+  const clearStudentFilters = () => {
+    setStudentSearchTerm("")
+    setFilteredStudents(students)
+  }
+
+  const handleSyncFromNAV = () => {
+    toast.info("Syncing student data from Dynamic NAV...")
+    // Simulate sync
+    setTimeout(() => {
+      setLastSyncDate(new Date())
+      toast.success("Student data synced successfully!")
+    }, 1500)
   }
 
   const getRoleBadge = (role: string) => {
@@ -257,8 +373,17 @@ export function UserManagement() {
         </Button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="students">Students (นักเรียน)</TabsTrigger>
+        </TabsList>
+
+        {/* Users Tab */}
+        <TabsContent value="users" className="space-y-4">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -684,6 +809,119 @@ export function UserManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+
+        {/* Students Tab */}
+        <TabsContent value="students" className="space-y-4">
+          {/* Last Sync Info */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Last synced from Dynamic NAV</p>
+                    <p className="text-lg font-semibold">{format(lastSyncDate, "PPpp")}</p>
+                  </div>
+                </div>
+                <Button onClick={handleSyncFromNAV} className="flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4" />
+                  Sync from NAV
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Search & Filter */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Filter className="w-5 h-5" />
+                Search & Filter
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Search</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input
+                    placeholder="Student name, student ID, parent name, or email"
+                    value={studentSearchTerm}
+                    onChange={(e) => setStudentSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button onClick={applyStudentFilters}>Apply Filters</Button>
+                <Button variant="outline" onClick={clearStudentFilters}>Clear All</Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Students Table */}
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Student ID</TableHead>
+                    <TableHead>Student Name</TableHead>
+                    <TableHead>Grade</TableHead>
+                    <TableHead>Parent Name</TableHead>
+                    <TableHead>Relationship</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>NAV ID</TableHead>
+                    <TableHead>Synced At</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredStudents.map((student) => (
+                    <TableRow key={student.id}>
+                      <TableCell className="font-mono text-sm">{student.studentId}</TableCell>
+                      <TableCell>
+                        <div className="font-medium">{student.studentName}</div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{student.studentGrade}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">{student.parentName}</div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{student.relationship}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Mail className="w-3 h-3 text-muted-foreground" />
+                            {student.parentEmail}
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <Phone className="w-3 h-3 text-muted-foreground" />
+                            {student.parentPhone}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">{student.navId}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {format(student.syncedAt, "MMM dd, yyyy HH:mm")}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {filteredStudents.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No students found
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

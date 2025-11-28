@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog"
 import { Separator } from "./ui/separator"
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "./ui/pagination"
-import { CalendarIcon, Search, Download, Filter, Eye, Receipt, CreditCard, ChevronLeft, ChevronRight, Mail, ExternalLink } from "lucide-react"
+import { CalendarIcon, Search, Download, Filter, Eye, Receipt, CreditCard, ChevronLeft, ChevronRight, Mail } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from "sonner"
 import { getPaymentChannelLabel } from "./StatusFilter"
@@ -33,6 +33,7 @@ interface ReceiptRecord {
   parentEmail: string
   transactionDate: Date
   lastEmailSentDate?: Date
+  emailStatus?: "sent" | "pending" | "not_sent" | "failed"
   navSyncStatus: "synced" | "pending" | "failed"
   navSyncDate?: Date
   parentType?: "internal" | "external"
@@ -89,6 +90,7 @@ const generateMockReceipts = (): ReceiptRecord[] => {
     let navSyncDate: Date | undefined
     let receiptNumber: string
     let lastEmailSentDate: Date | undefined
+    let emailStatus: "sent" | "pending" | "not_sent" | "failed" | undefined
 
     if (rand > 0.2) {
       // Synced - has receipt number and may have email sent
@@ -97,19 +99,35 @@ const generateMockReceipts = (): ReceiptRecord[] => {
       navSyncDate.setHours(navSyncDate.getHours() + Math.floor(Math.random() * 24) + 1) // 1-24 hours after transaction
       receiptNumber = `RCP-2025-${String(i).padStart(6, '0')}`
 
-      // 70% of synced receipts have email sent
-      if (Math.random() > 0.3) {
+      // Generate email status randomly
+      const randomEmail = Math.random()
+      if (randomEmail > 0.7) {
+        // 30% not sent
+        emailStatus = "not_sent"
+      } else if (randomEmail > 0.6) {
+        // 10% pending
+        emailStatus = "pending"
+      } else if (randomEmail > 0.55) {
+        // 5% failed
+        emailStatus = "failed"
         lastEmailSentDate = new Date(navSyncDate)
-        lastEmailSentDate.setDate(lastEmailSentDate.getDate() + Math.floor(Math.random() * 7) + 1) // 1-7 days after sync
+        lastEmailSentDate.setDate(lastEmailSentDate.getDate() + Math.floor(Math.random() * 7) + 1)
+      } else {
+        // 55% sent successfully
+        emailStatus = "sent"
+        lastEmailSentDate = new Date(navSyncDate)
+        lastEmailSentDate.setDate(lastEmailSentDate.getDate() + Math.floor(Math.random() * 7) + 1)
       }
     } else if (rand > 0.05) {
       // Pending - no receipt number, no email
       navSyncStatus = "pending"
       receiptNumber = "-"
+      emailStatus = "not_sent"
     } else {
       // Failed - no receipt number, no email
       navSyncStatus = "failed"
       receiptNumber = "-"
+      emailStatus = "not_sent"
     }
 
     receipts.push({
@@ -129,6 +147,7 @@ const generateMockReceipts = (): ReceiptRecord[] => {
       parentEmail,
       transactionDate: date,
       lastEmailSentDate,
+      emailStatus,
       navSyncStatus,
       navSyncDate,
       parentType: Math.random() > 0.7 ? "external" : "internal",
@@ -150,6 +169,7 @@ export function ReceiptPageUpdated() {
   const [searchTerm, setSearchTerm] = useState("")
   const [gradeFilter, setGradeFilter] = useState("all")
   const [schoolLevelFilter, setSchoolLevelFilter] = useState("all")
+  const [emailSentFilter, setEmailSentFilter] = useState<"all" | "sent" | "pending" | "not_sent" | "failed">("all")
   const [dateFrom, setDateFrom] = useState<Date | null>(null)
   const [dateTo, setDateTo] = useState<Date | null>(null)
   const [selectedReceipt, setSelectedReceipt] = useState<ReceiptRecord | null>(null)
@@ -193,15 +213,15 @@ export function ReceiptPageUpdated() {
       return
     }
 
-    // Update lastEmailSentDate to current date
+    // Update lastEmailSentDate and emailStatus to current date
     const updatedReceipts = receipts.map(r =>
-      r.id === receipt.id ? { ...r, lastEmailSentDate: new Date() } : r
+      r.id === receipt.id ? { ...r, lastEmailSentDate: new Date(), emailStatus: "sent" as const } : r
     )
     setReceipts(updatedReceipts)
 
     // Also update filtered receipts
     const updatedFilteredReceipts = filteredReceipts.map(r =>
-      r.id === receipt.id ? { ...r, lastEmailSentDate: new Date() } : r
+      r.id === receipt.id ? { ...r, lastEmailSentDate: new Date(), emailStatus: "sent" as const } : r
     )
     setFilteredReceipts(updatedFilteredReceipts)
 
@@ -219,10 +239,6 @@ export function ReceiptPageUpdated() {
     }
 
     toast.success(`Downloading receipt ${receipt.receiptNumber}`)
-  }
-
-  const handleViewTransaction = (receipt: ReceiptRecord) => {
-    toast.info(`Viewing transaction for receipt ${receipt.receiptNumber}`)
   }
 
   const applyFilters = () => {
@@ -245,6 +261,10 @@ export function ReceiptPageUpdated() {
       filtered = filtered.filter(receipt => receipt.schoolLevel === schoolLevelFilter)
     }
 
+    if (emailSentFilter !== "all") {
+      filtered = filtered.filter(receipt => receipt.emailStatus === emailSentFilter)
+    }
+
     if (dateFrom) {
       filtered = filtered.filter(receipt => receipt.transactionDate >= dateFrom)
     }
@@ -261,6 +281,7 @@ export function ReceiptPageUpdated() {
     setSearchTerm("")
     setGradeFilter("all")
     setSchoolLevelFilter("all")
+    setEmailSentFilter("all")
     setDateFrom(null)
     setDateTo(null)
     setFilteredReceipts(receipts)
@@ -332,7 +353,7 @@ export function ReceiptPageUpdated() {
           </div>
 
           {/* Filters Grid */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             {/* Grade Level */}
             <div className="space-y-2">
               <label className="text-sm font-medium">{t('paymentHistory.gradeLevel')}</label>
@@ -367,8 +388,25 @@ export function ReceiptPageUpdated() {
               </Select>
             </div>
 
+            {/* Email Sent */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Email Sent</label>
+              <Select value={emailSentFilter} onValueChange={setEmailSentFilter}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="sent">Sent</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="not_sent">Not Sent</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Date Range */}
-            <div className="space-y-2 col-span-2">
+            <div className="space-y-2 col-span-3">
               <label className="text-sm font-medium">{t('paymentHistory.dateRange')}</label>
               <div className="grid grid-cols-2 gap-2">
                 <Popover>
@@ -490,30 +528,40 @@ export function ReceiptPageUpdated() {
                   <TableCell>฿{receipt.amount.toLocaleString()}</TableCell>
                   <TableCell>{format(receipt.transactionDate, "MMM dd, yyyy")}</TableCell>
                   <TableCell>
-                    {receipt.lastEmailSentDate ? (
-                      <div className="text-sm">
-                        {format(receipt.lastEmailSentDate, "MMM dd, yyyy")}
-                      </div>
-                    ) : (
-                      <div className="text-sm text-muted-foreground">Not sent</div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {receipt.navSyncStatus === "synced" && (
+                    {receipt.emailStatus === "sent" && (
                       <div>
-                        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Synced</Badge>
-                        {receipt.navSyncDate && (
+                        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Sent</Badge>
+                        {receipt.lastEmailSentDate && (
                           <div className="text-xs text-muted-foreground mt-1">
-                            {format(receipt.navSyncDate, "MMM dd, yyyy")}
+                            {format(receipt.lastEmailSentDate, "MMM dd, yyyy")}
                           </div>
                         )}
                       </div>
                     )}
-                    {receipt.navSyncStatus === "pending" && (
+                    {receipt.emailStatus === "pending" && (
                       <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pending</Badge>
                     )}
-                    {receipt.navSyncStatus === "failed" && (
-                      <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Failed</Badge>
+                    {receipt.emailStatus === "not_sent" && (
+                      <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">Not sent</Badge>
+                    )}
+                    {receipt.emailStatus === "failed" && (
+                      <div>
+                        <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Failed</Badge>
+                        {receipt.lastEmailSentDate && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {format(receipt.lastEmailSentDate, "MMM dd, yyyy")}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {receipt.navSyncDate ? (
+                      <div className="text-sm text-muted-foreground">
+                        {format(receipt.navSyncDate, "MMM dd, yyyy")}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell>
@@ -656,16 +704,6 @@ export function ReceiptPageUpdated() {
                         className="h-8 w-8 p-0"
                       >
                         <Download className="w-4 h-4" />
-                      </Button>
-
-                      {/* View Transaction Button */}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleViewTransaction(receipt)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <ExternalLink className="w-4 h-4" />
                       </Button>
                     </div>
                   </TableCell>

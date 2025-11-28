@@ -21,7 +21,8 @@ interface PaymentTransaction {
   studentGrade: string
   parentEmail: string
   paymentChannel: string
-  paymentStatus: "success" | "pending" | "failed" | "refunded"
+  paymentStatus: "success" | "pending" | "failed"
+  navSyncStatus?: "success" | "pending" | "failed" | "-"
   amount: number
   fee: number
   totalAmount: number
@@ -39,7 +40,7 @@ const generateMockTransactions = (): PaymentTransaction[] => {
   const lastNames = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez"]
   const paymentChannels = ["Credit Card", "QR Payment", "Bank Counter", "Bank Transfer"]
   const cardBrands = ["Visa", "Mastercard", "American Express", "JCB"]
-  const statuses: ("success" | "pending" | "failed" | "refunded")[] = ["success", "pending", "failed", "refunded"]
+  const statuses: ("success" | "pending" | "failed")[] = ["success", "pending", "failed"]
 
   const transactions: PaymentTransaction[] = []
 
@@ -49,13 +50,12 @@ const generateMockTransactions = (): PaymentTransaction[] => {
     const grade = grades[Math.floor(Math.random() * grades.length)]
     const paymentChannel = paymentChannels[Math.floor(Math.random() * paymentChannels.length)]
 
-    // 85% success, 8% pending, 5% failed, 2% refunded
+    // 85% success, 10% pending, 5% failed
     const rand = Math.random()
-    let status: "success" | "pending" | "failed" | "refunded"
+    let status: "success" | "pending" | "failed"
     if (rand > 0.15) status = "success"
-    else if (rand > 0.07) status = "pending"
-    else if (rand > 0.02) status = "failed"
-    else status = "refunded"
+    else if (rand > 0.05) status = "pending"
+    else status = "failed"
 
     const amount = Math.random() > 0.6 ? 125000 : 42000
     const fee = paymentChannel === "Credit Card" ? amount * 0.03 : (paymentChannel === "QR Payment" ? amount * 0.015 : 0)
@@ -70,6 +70,19 @@ const generateMockTransactions = (): PaymentTransaction[] => {
     const cardBrand = paymentChannel === "Credit Card" ? cardBrands[Math.floor(Math.random() * cardBrands.length)] : undefined
     const cardLastFour = paymentChannel === "Credit Card" ? String(Math.floor(Math.random() * 9999)).padStart(4, '0') : undefined
 
+    // Generate NAV Sync Status based on payment status
+    let navSyncStatus: "success" | "pending" | "failed" | "-" | undefined
+    if (status === "success") {
+      // 80% synced successfully, 15% pending, 5% failed
+      const navRand = Math.random()
+      if (navRand > 0.2) navSyncStatus = "success"
+      else if (navRand > 0.05) navSyncStatus = "pending"
+      else navSyncStatus = "failed"
+    } else {
+      // For non-success payments, mostly "-" (not synced)
+      navSyncStatus = "-"
+    }
+
     transactions.push({
       id: i.toString(),
       invoiceNumber: `INV-2025-${String(i).padStart(6, '0')}`,
@@ -79,6 +92,7 @@ const generateMockTransactions = (): PaymentTransaction[] => {
       parentEmail,
       paymentChannel,
       paymentStatus: status,
+      navSyncStatus,
       amount,
       fee,
       totalAmount,
@@ -103,6 +117,7 @@ export function PaymentTransactions() {
   const [gradeFilter, setGradeFilter] = useState("all")
   const [channelFilter, setChannelFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [navSyncFilter, setNavSyncFilter] = useState("all")
   const [dateFrom, setDateFrom] = useState<Date | null>(null)
   const [dateTo, setDateTo] = useState<Date | null>(null)
   const [selectedTransaction, setSelectedTransaction] = useState<PaymentTransaction | null>(null)
@@ -139,6 +154,11 @@ export function PaymentTransactions() {
       filtered = filtered.filter(tx => tx.paymentStatus === statusFilter)
     }
 
+    // NAV Sync filter
+    if (navSyncFilter !== "all") {
+      filtered = filtered.filter(tx => tx.navSyncStatus === navSyncFilter)
+    }
+
     // Date range filter
     if (dateFrom) {
       filtered = filtered.filter(tx => tx.transactionDate >= dateFrom)
@@ -157,6 +177,7 @@ export function PaymentTransactions() {
     setGradeFilter("all")
     setChannelFilter("all")
     setStatusFilter("all")
+    setNavSyncFilter("all")
     setDateFrom(null)
     setDateTo(null)
     setFilteredTransactions(transactions)
@@ -171,10 +192,23 @@ export function PaymentTransactions() {
         return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pending</Badge>
       case "failed":
         return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Failed</Badge>
-      case "refunded":
-        return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">Refunded</Badge>
       default:
         return <Badge>{status}</Badge>
+    }
+  }
+
+  const getNavSyncBadge = (status?: string) => {
+    switch (status) {
+      case "success":
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Success</Badge>
+      case "pending":
+        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pending</Badge>
+      case "failed":
+        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Failed</Badge>
+      case "-":
+        return <span className="text-sm text-muted-foreground">-</span>
+      default:
+        return <span className="text-sm text-muted-foreground">-</span>
     }
   }
 
@@ -221,7 +255,7 @@ export function PaymentTransactions() {
           </div>
 
           {/* Filters Grid */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             {/* Year Group */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Year Group</label>
@@ -270,13 +304,29 @@ export function PaymentTransactions() {
                   <SelectItem value="success">Success</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="failed">Failed</SelectItem>
-                  <SelectItem value="refunded">Refunded</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* NAV Sync Status */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">NAV Sync</label>
+              <Select value={navSyncFilter} onValueChange={setNavSyncFilter}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="success">Success</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="-">-</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Date Range */}
-            <div className="space-y-2 col-span-3">
+            <div className="space-y-2 col-span-4">
               <label className="text-sm font-medium">Date Range</label>
               <div className="grid grid-cols-2 gap-2">
                 <Popover>
@@ -367,6 +417,7 @@ export function PaymentTransactions() {
                 <TableHead>Status</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Fee</TableHead>
+                <TableHead>NAV Sync</TableHead>
                 <TableHead>Transaction Date</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -391,6 +442,7 @@ export function PaymentTransactions() {
                   <TableCell>{getStatusBadge(transaction.paymentStatus)}</TableCell>
                   <TableCell>฿{transaction.amount.toLocaleString()}</TableCell>
                   <TableCell>฿{transaction.fee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                  <TableCell>{getNavSyncBadge(transaction.navSyncStatus)}</TableCell>
                   <TableCell>{format(transaction.transactionDate, "MMM dd, yyyy HH:mm")}</TableCell>
                   <TableCell>
                     <Dialog>

@@ -16,7 +16,6 @@ interface Term {
   billingStartDate: Date | null
   startDate: Date | null
   endDate: Date | null
-  paymentDeadline: Date | null
 }
 
 export function TuitionTermSettings() {
@@ -31,8 +30,7 @@ export function TuitionTermSettings() {
         ...term,
         billingStartDate: term.billingStartDate ? new Date(term.billingStartDate) : null,
         startDate: term.startDate ? new Date(term.startDate) : null,
-        endDate: term.endDate ? new Date(term.endDate) : null,
-        paymentDeadline: term.paymentDeadline ? new Date(term.paymentDeadline) : null
+        endDate: term.endDate ? new Date(term.endDate) : null
       }))
     }
     // Default terms if no saved data
@@ -42,24 +40,21 @@ export function TuitionTermSettings() {
         name: t('termSettings.term1'),
         billingStartDate: new Date("2025-07-15"),
         startDate: new Date("2025-08-15"),
-        endDate: new Date("2025-12-20"),
-        paymentDeadline: new Date("2025-08-01")
+        endDate: new Date("2025-12-20")
       },
       {
         id: "2",
         name: t('termSettings.term2'),
         billingStartDate: new Date("2025-12-01"),
         startDate: new Date("2026-01-08"),
-        endDate: new Date("2026-03-20"),
-        paymentDeadline: new Date("2025-12-15")
+        endDate: new Date("2026-03-20")
       },
       {
         id: "3",
         name: t('termSettings.term3'),
         billingStartDate: new Date("2026-03-01"),
         startDate: new Date("2026-04-01"),
-        endDate: new Date("2026-06-15"),
-        paymentDeadline: new Date("2026-03-15")
+        endDate: new Date("2026-06-15")
       }
     ]
   }
@@ -73,8 +68,7 @@ export function TuitionTermSettings() {
       name: "New Term",
       billingStartDate: null,
       startDate: null,
-      endDate: null,
-      paymentDeadline: null
+      endDate: null
     }
     setTerms([...terms, newTerm])
   }
@@ -151,7 +145,7 @@ export function TuitionTermSettings() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Billing Start Date */}
                 <div className="space-y-2">
                   <Label>{t('termSettings.billingStartDate')}</Label>
@@ -223,36 +217,12 @@ export function TuitionTermSettings() {
                     </PopoverContent>
                   </Popover>
                 </div>
-
-                {/* Payment Deadline */}
-                <div className="space-y-2">
-                  <Label>{t('termSettings.paymentDeadline')}</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-left font-normal h-9"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {term.paymentDeadline ? format(term.paymentDeadline, "PPP") : "Pick a date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={term.paymentDeadline || undefined}
-                        onSelect={(date) => updateTerm(term.id, "paymentDeadline", date)}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
               </div>
 
               {/* Term Summary */}
               <div className="mt-4 p-4 bg-muted rounded-lg">
                 <h4 className="font-medium mb-2">{t('termSettings.termSummary')}</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                   <div>
                     <span className="text-muted-foreground">{t('termSettings.billingPeriod')}:</span>{" "}
                     {term.billingStartDate && term.endDate
@@ -268,29 +238,9 @@ export function TuitionTermSettings() {
                     }
                   </div>
                   <div>
-                    <span className="text-muted-foreground">{t('termSettings.daysUntilDeadline')}:</span>{" "}
-                    {term.paymentDeadline
-                      ? (() => {
-                          const today = new Date()
-                          const deadline = new Date(term.paymentDeadline)
-                          const diffTime = deadline.getTime() - today.getTime()
-                          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-                          if (diffDays > 0) {
-                            return `${diffDays} ${t('termSettings.daysRemaining')}`
-                          } else if (diffDays === 0) {
-                            return t('termSettings.today')
-                          } else {
-                            return `${Math.abs(diffDays)} ${t('termSettings.daysOverdue')}`
-                          }
-                        })()
-                      : "Not set"
-                    }
-                  </div>
-                  <div>
                     <span className="text-muted-foreground">{t('termSettings.status')}:</span>{" "}
-                    <span className={term.billingStartDate && term.startDate && term.endDate && term.paymentDeadline ? "text-green-600" : "text-red-600"}>
-                      {term.billingStartDate && term.startDate && term.endDate && term.paymentDeadline ? t('termSettings.complete') : t('termSettings.incomplete')}
+                    <span className={term.billingStartDate && term.startDate && term.endDate ? "text-green-600" : "text-red-600"}>
+                      {term.billingStartDate && term.startDate && term.endDate ? t('termSettings.complete') : t('termSettings.incomplete')}
                     </span>
                   </div>
                 </div>

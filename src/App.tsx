@@ -48,6 +48,7 @@ import {
   TrendingDown,
   FileCheck,
   FileText as FileInvoice,
+  ScrollText,
 
   Settings2,
   LogOut
@@ -83,6 +84,8 @@ import { ViewModal } from "./components/ViewModal"
 import { ViewDetailsPage } from "./components/ViewDetailsPage"
 import { UserManagement } from "./components/UserManagement"
 import { PaymentTransactions } from "./components/PaymentTransactions"
+import { ActivityLog } from "./components/ActivityLog"
+import { SchoolSettings } from "./components/SchoolSettings"
 
 const menuItems = {
   tuition: [
@@ -95,6 +98,10 @@ const menuItems = {
   ],
   userManagement: [
     { id: "user-management", labelKey: "menu.userManagement", icon: Users },
+    { id: "activity-log", labelKey: "menu.activityLog", icon: ScrollText },
+  ],
+  schoolSettings: [
+    { id: "school-settings", labelKey: "menu.schoolSettings", icon: Settings },
   ]
 }
 
@@ -222,6 +229,10 @@ export default function App() {
         return <EmailCsvExport jobData={subPageParams?.job} onBack={navigateBack} />
       case "user-management":
         return <UserManagement />
+      case "activity-log":
+        return <ActivityLog />
+      case "school-settings":
+        return <SchoolSettings />
       case "view-details":
         return <ViewDetailsPage 
           type={viewDetailsType}
@@ -303,6 +314,26 @@ export default function App() {
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
+
+            <SidebarGroup>
+              <SidebarGroupLabel>{t('sidebar.schoolSettings')}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {menuItems.schoolSettings.map((item) => (
+                    <SidebarMenuItem key={item.id}>
+                      <SidebarMenuButton
+                        onClick={() => setActiveSection(item.id)}
+                        isActive={activeSection === item.id}
+                        className={activeSection === item.id ? "!bg-black !text-white !font-bold" : ""}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        <span>{t(item.labelKey)}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
           </SidebarContent>
 
           <SidebarFooter className="p-4 border-t">
@@ -336,7 +367,8 @@ export default function App() {
                 {(() => {
                   const menuItem =
                     menuItems.tuition.find(item => item.id === activeSection) ||
-                    menuItems.userManagement.find(item => item.id === activeSection)
+                    menuItems.userManagement.find(item => item.id === activeSection) ||
+                    menuItems.schoolSettings.find(item => item.id === activeSection)
 
                   if (menuItem) return t(menuItem.labelKey)
 

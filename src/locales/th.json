@@ -24,7 +24,8 @@
     "tuitionManagement": "จัดการค่าเทอม",
     "discountManagement": "จัดการส่วนลด",
     "emailNotifications": "การแจ้งเตือนอีเมล",
-    "userManagement": "จัดการผู้ใช้งาน"
+    "userManagement": "จัดการผู้ใช้งาน",
+    "schoolSettings": "ตั้งค่าโรงเรียน"
   },
   "menu": {
     "dashboard": "แดชบอร์ด",
@@ -43,7 +44,9 @@
     "discountReports": "รายงานส่วนลด",
     "itemsTemplates": "รายการและเทมเพลต",
     "emailJobs": "งานอีเมล",
-    "userManagement": "จัดการผู้ใช้งาน"
+    "userManagement": "จัดการผู้ใช้งาน",
+    "activityLog": "บันทึกกิจกรรม",
+    "schoolSettings": "ตั้งค่าโรงเรียน"
   },
   "pages": {
     "createTuitionInvoice": "สร้างใบแจ้งหนี้ค่าเทอม",
@@ -229,5 +232,27 @@
       "primary": "ประถม",
       "secondary": "มัธยม"
     }
+  },
+  "schoolSettings": {
+    "title": "ตั้งค่าโรงเรียน",
+    "description": "กำหนดข้อมูลโรงเรียน อีเมล และตราสัญลักษณ์",
+    "schoolInformation": "ข้อมูลโรงเรียน",
+    "schoolInformationDescription": "ข้อมูลพื้นฐานเกี่ยวกับโรงเรียนของคุณ",
+    "schoolName": "ชื่อโรงเรียน",
+    "schoolNamePlaceholder": "กรอกชื่อโรงเรียน",
+    "schoolEmail": "อีเมลโรงเรียน",
+    "schoolEmailPlaceholder": "กรอกที่อยู่อีเมลโรงเรียน",
+    "emailHelpText": "อีเมลนี้จะถูกใช้เป็นผู้ส่งสำหรับการแจ้งเตือนทั้งหมดของระบบ",
+    "schoolLogo": "โลโก้โรงเรียน",
+    "schoolLogoDescription": "อัปโหลดโลโก้โรงเรียนสำหรับใบแจ้งหนี้และใบเสร็จ",
+    "logoRequirements": "ข้อกำหนดโลโก้:",
+    "logoFormat": "รูปแบบ: PNG, JPG หรือ SVG",
+    "logoSize": "ขนาดสูงสุด: 2MB",
+    "logoRecommendation": "แนะนำ: รูปภาพสี่เหลี่ยมจัตุรัสพื้นหลังโปร่งใส",
+    "uploadLogo": "อัปโหลดโลโก้",
+    "removeLogo": "ลบโลโก้",
+    "saveChanges": "บันทึกการเปลี่ยนแปลง",
+    "saveSuccess": "บันทึกการตั้งค่าสำเร็จ",
+    "saveSuccessMessage": "การตั้งค่าโรงเรียนของคุณได้รับการอัปเดตเรียบร้อยแล้ว"
   }
 }

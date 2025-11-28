@@ -24,7 +24,8 @@
     "tuitionManagement": "Tuition Management",
     "discountManagement": "Discount Management",
     "emailNotifications": "Email Notifications",
-    "userManagement": "User Management"
+    "userManagement": "User Management",
+    "schoolSettings": "School Settings"
   },
   "menu": {
     "dashboard": "Dashboard",
@@ -43,7 +44,9 @@
     "discountReports": "Discount Reports",
     "itemsTemplates": "Items & Templates",
     "emailJobs": "Email Jobs",
-    "userManagement": "User Management"
+    "userManagement": "User Management",
+    "activityLog": "Activity Log",
+    "schoolSettings": "School Settings"
   },
   "pages": {
     "createTuitionInvoice": "Create Tuition Invoice",
@@ -229,5 +232,27 @@
       "primary": "Primary",
       "secondary": "Secondary"
     }
+  },
+  "schoolSettings": {
+    "title": "School Settings",
+    "description": "Configure your school information, email, and branding",
+    "schoolInformation": "School Information",
+    "schoolInformationDescription": "Basic information about your school",
+    "schoolName": "School Name",
+    "schoolNamePlaceholder": "Enter school name",
+    "schoolEmail": "School Email",
+    "schoolEmailPlaceholder": "Enter school email address",
+    "emailHelpText": "This email will be used as the sender for all system notifications",
+    "schoolLogo": "School Logo",
+    "schoolLogoDescription": "Upload your school logo for invoices and receipts",
+    "logoRequirements": "Logo Requirements:",
+    "logoFormat": "Format: PNG, JPG, or SVG",
+    "logoSize": "Maximum size: 2MB",
+    "logoRecommendation": "Recommended: Square image with transparent background",
+    "uploadLogo": "Upload Logo",
+    "removeLogo": "Remove Logo",
+    "saveChanges": "Save Changes",
+    "saveSuccess": "Settings Saved",
+    "saveSuccessMessage": "Your school settings have been updated successfully"
   }
 }

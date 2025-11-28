@@ -199,9 +199,6 @@ export function TuitionDashboard() {
             <p className="text-xs text-muted-foreground">
               {selectedTerm && selectedTerm !== "all" ? `${selectedTerm === "term1" ? "Term 1" : selectedTerm === "term2" ? "Term 2" : "Term 3"}` : `${t('dashboard.studentsOverdue')}`}
             </p>
-            <p className="text-xs text-red-500 mt-1">
-              ฿1,575,000 {t('dashboard.totalOverdue')}
-            </p>
           </CardContent>
         </Card>
 
@@ -214,9 +211,6 @@ export function TuitionDashboard() {
             <div className="text-2xl font-bold text-orange-600">฿3,280,000</div>
             <p className="text-xs text-muted-foreground">
               {selectedTerm && selectedTerm !== "all" ? `${selectedTerm === "term1" ? "Term 1" : selectedTerm === "term2" ? "Term 2" : "Term 3"}` : `${t('dashboard.totalOutstanding')}`}
-            </p>
-            <p className="text-xs text-orange-500 mt-1">
-              {t('dashboard.fromStudents', { count: 438 })}
             </p>
           </CardContent>
         </Card>
@@ -234,10 +228,16 @@ export function TuitionDashboard() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={weeklyPaymentData}>
+              <LineChart data={weeklyPaymentData} margin={{ top: 5, right: 20, left: 10, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="week" />
-                <YAxis />
+                <XAxis
+                  dataKey="week"
+                  label={{ value: 'Week', position: 'insideBottom', offset: -10, style: { fontSize: '12px' } }}
+                />
+                <YAxis
+                  tickFormatter={(value) => `฿${Number(value).toLocaleString()}`}
+                  label={{ value: 'Amount (THB)', position: 'top', offset: 10, style: { fontSize: '12px', textAnchor: 'middle' } }}
+                />
                 <Tooltip formatter={(value) => [`฿${Number(value).toLocaleString()}`, t('dashboard.amount')]} />
                 <Line type="monotone" dataKey="amount" stroke="#8884d8" strokeWidth={2} dot={{ fill: "#8884d8", r: 4 }} />
               </LineChart>
