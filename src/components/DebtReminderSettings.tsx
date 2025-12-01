@@ -1,19 +1,20 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
-import { Textarea } from "./ui/textarea"
 import { Switch } from "./ui/switch"
 import { Progress } from "./ui/progress"
-import { Save, Bell, Plus, Trash2, Mail, Send } from "lucide-react"
+import { Calendar } from "./ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
+import { Save, Bell, Plus, Trash2, Mail, Send, CalendarIcon } from "lucide-react"
+import { format } from "date-fns"
 
 interface ReminderConfig {
   id: string
   name: string
-  timing: "before" | "after"
-  days: number
+  reminderDate: Date | null
   method: "email" | "sms" | "both"
   enabled: boolean
   subject: string
@@ -24,34 +25,118 @@ const initialReminders: ReminderConfig[] = [
   {
     id: "1",
     name: "First Reminder",
-    timing: "before",
-    days: 30,
+    reminderDate: new Date(new Date().setDate(new Date().getDate() + 30)),
     method: "email",
     enabled: true,
     subject: "Tuition Payment Reminder - 30 Days",
-    message: "Dear Parent, This is a friendly reminder that your child's tuition payment is due in 30 days. Please make your payment to avoid any late fees."
+    message: "<p>Dear Parent,</p><p>This is a friendly reminder that your child's tuition payment is due in 30 days. Please make your payment to avoid any late fees.</p>"
   },
   {
     id: "2",
     name: "Second Reminder",
-    timing: "before",
-    days: 14,
+    reminderDate: new Date(new Date().setDate(new Date().getDate() + 14)),
     method: "both",
     enabled: true,
     subject: "Urgent: Tuition Payment Due in 14 Days",
-    message: "Dear Parent, Your child's tuition payment is due in 14 days. Please complete your payment as soon as possible to ensure continuous enrollment."
+    message: "<p>Dear Parent,</p><p>Your child's tuition payment is due in 14 days. Please complete your payment as soon as possible to ensure continuous enrollment.</p>"
   },
   {
     id: "3",
     name: "Overdue Notice",
-    timing: "after",
-    days: 7,
+    reminderDate: null,
     method: "both",
     enabled: true,
     subject: "OVERDUE: Tuition Payment Past Due",
-    message: "Dear Parent, Your child's tuition payment is now 7 days overdue. Please contact our office immediately to arrange payment."
+    message: "<p>Dear Parent,</p><p>Your child's tuition payment is now overdue. Please contact our office immediately to arrange payment.</p>"
   }
 ]
+
+type FormatCommand = "bold" | "italic" | "underline"
+
+interface SimpleRichTextEditorProps {
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+}
+
+const toolbarActions: { label: string; command: FormatCommand; className: string; ariaLabel: string }[] = [
+  { label: "B", command: "bold", className: "font-semibold", ariaLabel: "Bold" },
+  { label: "I", command: "italic", className: "italic", ariaLabel: "Italic" },
+  { label: "U", command: "underline", className: "underline", ariaLabel: "Underline" }
+]
+
+const isHtmlEmpty = (html: string) => {
+  if (!html) return true
+  const stripped = html
+    .replace(/<br\s*\/?>/gi, "")
+    .replace(/&nbsp;/gi, "")
+    .replace(/<div>\s*<\/div>/gi, "")
+    .replace(/<p>\s*<\/p>/gi, "")
+    .replace(/<[^>]+>/g, "")
+    .trim()
+  return stripped.length === 0
+}
+
+function SimpleRichTextEditor({ value, onChange, placeholder }: SimpleRichTextEditorProps) {
+  const editorRef = useRef<HTMLDivElement>(null)
+  const content = value || ""
+
+  useEffect(() => {
+    const editor = editorRef.current
+    if (!editor) return
+    if (editor.innerHTML !== content) {
+      editor.innerHTML = content
+    }
+  }, [content])
+
+  const handleInput = () => {
+    const editor = editorRef.current
+    if (!editor) return
+    onChange(editor.innerHTML)
+  }
+
+  const applyFormatting = (command: FormatCommand) => {
+    const editor = editorRef.current
+    if (!editor) return
+    editor.focus()
+    document.execCommand(command, false)
+    handleInput()
+  }
+
+  const showPlaceholder = isHtmlEmpty(content)
+
+  return (
+    <div className="space-y-2">
+      <div className="inline-flex rounded-md border bg-muted/30 p-1">
+        {toolbarActions.map(action => (
+          <button
+            key={action.command}
+            type="button"
+            onClick={() => applyFormatting(action.command)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium text-foreground hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label={action.ariaLabel}
+          >
+            <span className={action.className}>{action.label}</span>
+          </button>
+        ))}
+      </div>
+      <div className="relative">
+        {showPlaceholder && (
+          <span className="pointer-events-none absolute left-3 top-3 text-sm text-muted-foreground">
+            {placeholder}
+          </span>
+        )}
+        <div
+          ref={editorRef}
+          className="min-h-[120px] w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          contentEditable
+          suppressContentEditableWarning
+          onInput={handleInput}
+        />
+      </div>
+    </div>
+  )
+}
 
 export function DebtReminderSettings() {
   const [reminders, setReminders] = useState<ReminderConfig[]>(initialReminders)
@@ -71,12 +156,11 @@ export function DebtReminderSettings() {
     const newReminder: ReminderConfig = {
       id: Date.now().toString(),
       name: "New Reminder",
-      timing: "before",
-      days: 7,
+      reminderDate: null,
       method: "email",
       enabled: true,
       subject: "Tuition Payment Reminder",
-      message: "Dear Parent,\n\nThis is a reminder that your child's tuition payment is due. Please make your payment to avoid any late fees.\n\nThank you."
+      message: "<p>Dear Parent,</p><p>This is a reminder that your child's tuition payment is due. Please make your payment to avoid any late fees.</p><p>Thank you.</p>"
     }
     setReminders([...reminders, newReminder])
   }
@@ -96,16 +180,28 @@ export function DebtReminderSettings() {
     // In a real app, this would save to backend
   }
 
+  const getPreviewHtml = (template: string, reminder: ReminderConfig) => {
+    const base = template || ""
+    const reminderDateText = reminder.reminderDate ? format(reminder.reminderDate, "dd MMMM yyyy") : "Not set"
+
+    return base
+      .replace(/{parent_name}/g, "Mr. John Smith")
+      .replace(/{student_name}/g, "Emma Smith")
+      .replace(/{amount}/g, "฿45,000")
+      .replace(/{due_date}/g, "November 15, 2025")
+      .replace(/{reminder_date}/g, reminderDateText)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-xl font-semibold">Debt Reminder Settings</h2>
           <p className="text-sm text-muted-foreground">
-            Configure up to 3 reminder periods for unpaid tuition
+            Configure up to 10 reminder periods for unpaid tuition
           </p>
         </div>
-        <Button onClick={addReminder} disabled={reminders.length >= 3} className="flex items-center gap-2">
+        <Button onClick={addReminder} disabled={reminders.length >= 10} className="flex items-center gap-2">
           <Plus className="w-4 h-4" />
           Add Reminder
         </Button>
@@ -166,7 +262,9 @@ export function DebtReminderSettings() {
 
       {/* Reminder Configurations */}
       <div className="space-y-4">
-        {reminders.map((reminder, index) => (
+        {reminders.map((reminder, index) => {
+          const previewHtml = getPreviewHtml(reminder.message, reminder) || "<p>No message template defined.</p>"
+          return (
           <Card key={reminder.id}>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
@@ -193,38 +291,34 @@ export function DebtReminderSettings() {
                 </div>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Timing</Label>
-                  <Select
-                    value={reminder.timing}
-                    onValueChange={(value: "before" | "after") => updateReminder(reminder.id, "timing", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="before">Before Due Date</SelectItem>
-                      <SelectItem value="after">After Due Date</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Days</Label>
-                  <Input
-                    type="number"
-                    value={reminder.days}
-                    onChange={(e) => updateReminder(reminder.id, "days", parseInt(e.target.value))}
-                    min="1"
-                    max="365"
-                  />
-                </div>
+            <CardContent className="space-y-6">
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">Reminder Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={`w-full justify-start text-left font-normal ${
+                        !reminder.reminderDate && "text-muted-foreground"
+                      }`}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {reminder.reminderDate ? format(reminder.reminderDate, "dd/MM/yyyy") : "Select date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={reminder.reminderDate || undefined}
+                      onSelect={(date) => updateReminder(reminder.id, "reminderDate", date)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
-              <div className="space-y-2">
-                <Label>Email Subject</Label>
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">Email Subject</Label>
                 <Input
                   value={reminder.subject}
                   onChange={(e) => updateReminder(reminder.id, "subject", e.target.value)}
@@ -232,16 +326,15 @@ export function DebtReminderSettings() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Message Template</Label>
-                <Textarea
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">Message Template</Label>
+                <SimpleRichTextEditor
                   value={reminder.message}
-                  onChange={(e) => updateReminder(reminder.id, "message", e.target.value)}
+                  onChange={(content) => updateReminder(reminder.id, "message", content)}
                   placeholder="Enter reminder message template"
-                  rows={4}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Available variables: {"{parent_name}"}, {"{student_name}"}, {"{amount}"}, {"{due_date}"}, {"{days_remaining}"}
+                  Available variables: {"{parent_name}"}, {"{student_name}"}, {"{amount}"}, {"{due_date}"}, {"{reminder_date}"}
                 </p>
               </div>
 
@@ -250,7 +343,7 @@ export function DebtReminderSettings() {
                 <div className="p-4 bg-muted rounded-lg">
                   <h4 className="font-medium mb-2">Reminder Preview</h4>
                   <div className="text-sm space-y-1">
-                    <p><strong>Timing:</strong> {reminder.days} days {reminder.timing === "before" ? "before" : "after"} payment due date</p>
+                    <p><strong>Reminder Date:</strong> {reminder.reminderDate ? format(reminder.reminderDate, "dd MMMM yyyy") : "Not set"}</p>
                     <p><strong>Status:</strong>
                       <span className={reminder.enabled ? "text-green-600 ml-1" : "text-red-600 ml-1"}>
                         {reminder.enabled ? "Active" : "Disabled"}
@@ -279,15 +372,11 @@ export function DebtReminderSettings() {
                     </div>
 
                     {/* Email Body */}
-                    <div className="space-y-3">
-                      <div className="text-sm whitespace-pre-wrap">
-                        {reminder.message
-                          .replace(/{parent_name}/g, "Mr. John Smith")
-                          .replace(/{student_name}/g, "Emma Smith")
-                          .replace(/{amount}/g, "฿45,000")
-                          .replace(/{due_date}/g, "November 15, 2025")
-                          .replace(/{days_remaining}/g, reminder.days.toString())}
-                      </div>
+                    <div className="space-y-3 text-sm">
+                      <div
+                        className="text-sm leading-relaxed space-y-2"
+                        dangerouslySetInnerHTML={{ __html: previewHtml }}
+                      />
 
                       {/* Sample Footer */}
                       <div className="pt-3 mt-3 border-t text-xs text-muted-foreground">
@@ -301,7 +390,8 @@ export function DebtReminderSettings() {
               </div>
             </CardContent>
           </Card>
-        ))}
+        )
+      })}
       </div>
 
       {/* Save Button */}

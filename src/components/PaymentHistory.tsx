@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button"
@@ -6,12 +6,13 @@ import { Input } from "./ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table"
 import { Badge } from "./ui/badge"
+import { Checkbox } from "./ui/checkbox"
 import { Calendar } from "./ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog"
 import { Separator } from "./ui/separator"
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "./ui/pagination"
-import { CalendarIcon, Search, Download, Filter, Eye, Receipt, CreditCard, ChevronLeft, ChevronRight, Mail, ExternalLink } from "lucide-react"
+import { CalendarIcon, Search, Download, Filter, Eye, Receipt, CreditCard, ChevronLeft, ChevronRight, Mail, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from "sonner@2.0.3"
 import { StatusFilter, PaymentStatus, getStatusBadge, PaymentChannelFilter, PaymentChannel, getPaymentChannelLabel } from "./StatusFilter"
@@ -31,6 +32,7 @@ interface PaymentRecord {
   payerName: string
   parentEmail: string
   status: "paid" | "pending" | "overdue" | "cancelled"
+  invoiceStatus: "paid" | "unpaid" | "overdue" | "cancelled" | "partial"
   transactionDate: Date
   lastEmailSentDate?: Date
   emailStatus?: "sent" | "pending" | "not_sent" | "failed"
@@ -56,6 +58,7 @@ const generateMockPayments = (): PaymentRecord[] => {
   const paymentChannels: ("credit_card" | "qr_payment" | "counter_bank")[] = ["credit_card", "qr_payment", "counter_bank"]
   const payerNames = ["Mr. John Smith", "Mrs. Sarah Johnson", "Mr. David Williams", "Ms. Emily Brown", "Mr. Michael Davis", "Mrs. Lisa Garcia", "Mr. James Wilson", "Ms. Maria Rodriguez"]
   const statuses: ("paid" | "pending" | "overdue" | "cancelled")[] = ["paid", "paid", "paid", "pending", "pending", "cancelled", "overdue"]
+  const invoiceStatuses: ("paid" | "unpaid" | "overdue" | "cancelled" | "partial")[] = ["paid", "paid", "paid", "unpaid", "unpaid", "overdue", "cancelled"]
 
   const payments: PaymentRecord[] = []
 
@@ -81,6 +84,7 @@ const generateMockPayments = (): PaymentRecord[] => {
     const paymentType = Math.random() > 0.6 ? "yearly" : "termly"
     const amount = paymentType === "yearly" ? 125000 : 42000
     const status = statuses[Math.floor(Math.random() * statuses.length)]
+    const invoiceStatus = invoiceStatuses[Math.floor(Math.random() * invoiceStatuses.length)]
     const paymentMethod = paymentMethods[Math.floor(Math.random() * paymentMethods.length)]
     const paymentChannel = paymentChannels[Math.floor(Math.random() * paymentChannels.length)]
     const payerName = payerNames[Math.floor(Math.random() * payerNames.length)]
@@ -149,6 +153,7 @@ const generateMockPayments = (): PaymentRecord[] => {
       payerName,
       parentEmail,
       status,
+      invoiceStatus,
       transactionDate: date,
       lastEmailSentDate,
       emailStatus,
@@ -185,28 +190,69 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
   )
   const [searchTerm, setSearchTerm] = useState("")
   const [emailSentFilter, setEmailSentFilter] = useState<"all" | "sent" | "pending" | "not_sent" | "failed">("all")
+  const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<"all" | "paid" | "unpaid" | "overdue">("all")
   const [gradeFilter, setGradeFilter] = useState("all")
   const [schoolLevelFilter, setSchoolLevelFilter] = useState("all")
   const [dateFrom, setDateFrom] = useState<Date | null>(null)
   const [dateTo, setDateTo] = useState<Date | null>(null)
   const [selectedPayment, setSelectedPayment] = useState<PaymentRecord | null>(null)
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<Set<string>>(new Set())
 
   // Email sending limit tracking
   const DAILY_EMAIL_LIMIT = 500
   const [emailsSentToday, setEmailsSentToday] = useState(235)
   const [lastResetDate, setLastResetDate] = useState(new Date().toDateString())
+  const emailsSentTodayRef = useRef(emailsSentToday)
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
+  // Sorting states
+  type SortField = "invoiceNumber" | "studentName" | "studentGrade" | "amount" | "invoiceStatus" | "transactionDate"
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
+
+  useEffect(() => {
+    emailsSentTodayRef.current = emailsSentToday
+  }, [emailsSentToday])
+
+  useEffect(() => {
+    setSelectedInvoiceIds(prev => {
+      if (prev.size === 0) return prev
+      const visibleIds = new Set(filteredPayments.map(payment => payment.id))
+      let changed = false
+      const next = new Set<string>()
+      prev.forEach(id => {
+        if (visibleIds.has(id)) {
+          next.add(id)
+        } else {
+          changed = true
+        }
+      })
+      return changed ? next : prev
+    })
+  }, [filteredPayments])
+
   // Reset email counter at midnight
   const checkAndResetEmailCounter = () => {
     const today = new Date().toDateString()
     if (today !== lastResetDate) {
-      setEmailsSentToday(0)
+      setEmailsSentToday(() => {
+        emailsSentTodayRef.current = 0
+        return 0
+      })
       setLastResetDate(today)
+      emailsSentTodayRef.current = 0
     }
+  }
+
+  const incrementEmailsSent = () => {
+    setEmailsSentToday(prev => {
+      const updated = prev + 1
+      emailsSentTodayRef.current = updated
+      return updated
+    })
   }
 
   // Action handlers
@@ -215,30 +261,46 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
     // In real app, this would open the PDF viewer dialog
   }
 
-  const handleSendEmail = (payment: PaymentRecord) => {
-    // Check and reset email counter if needed
+  const performEmailSend = (payment: PaymentRecord): boolean => {
     checkAndResetEmailCounter()
 
-    // Check if daily limit reached
-    if (emailsSentToday >= DAILY_EMAIL_LIMIT) {
+    if (emailsSentTodayRef.current >= DAILY_EMAIL_LIMIT) {
+      return false
+    }
+
+    const timestamp = new Date()
+
+    setPayments(prev =>
+      prev.map(p =>
+        p.id === payment.id ? { ...p, lastEmailSentDate: timestamp, emailStatus: "sent" as const } : p
+      )
+    )
+
+    setFilteredPayments(prev =>
+      prev.map(p =>
+        p.id === payment.id ? { ...p, lastEmailSentDate: timestamp, emailStatus: "sent" as const } : p
+      )
+    )
+
+    incrementEmailsSent()
+
+    setSelectedInvoiceIds(prev => {
+      if (!prev.has(payment.id)) return prev
+      const next = new Set(prev)
+      next.delete(payment.id)
+      return next
+    })
+
+    return true
+  }
+
+  const handleSendEmail = (payment: PaymentRecord) => {
+    const success = performEmailSend(payment)
+
+    if (!success) {
       toast.error(`Daily email limit reached (${DAILY_EMAIL_LIMIT} emails). Please try again tomorrow.`)
       return
     }
-
-    // Update lastEmailSentDate and emailStatus to current date
-    const updatedPayments = payments.map(p =>
-      p.id === payment.id ? { ...p, lastEmailSentDate: new Date(), emailStatus: "sent" as const } : p
-    )
-    setPayments(updatedPayments)
-
-    // Also update filtered payments
-    const updatedFilteredPayments = filteredPayments.map(p =>
-      p.id === payment.id ? { ...p, lastEmailSentDate: new Date(), emailStatus: "sent" as const } : p
-    )
-    setFilteredPayments(updatedFilteredPayments)
-
-    // Increment email counter
-    setEmailsSentToday(prev => prev + 1)
 
     toast.success(`Email sent to ${payment.parentEmail}`)
     // In real app, this would trigger email sending API
@@ -252,6 +314,33 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
   const handleViewTransaction = (payment: PaymentRecord) => {
     toast.info(`Viewing transaction for invoice ${payment.invoiceNumber}`)
     // In real app, this would navigate to transaction details page
+  }
+
+  const handleBulkSendEmails = () => {
+    if (selectedInvoiceIds.size === 0) {
+      toast.error("Please select at least one invoice to send reminder emails.")
+      return
+    }
+
+    const paymentsToEmail = filteredPayments.filter(payment => selectedInvoiceIds.has(payment.id))
+    if (paymentsToEmail.length === 0) {
+      toast.error("Selected invoices are not available with the current filters.")
+      return
+    }
+
+    let sentCount = 0
+    for (const payment of paymentsToEmail) {
+      const success = performEmailSend(payment)
+      if (!success) {
+        toast.error(sentCount === 0
+          ? `Daily email limit reached (${DAILY_EMAIL_LIMIT} emails). Please try again tomorrow.`
+          : `Daily email limit reached. Sent ${sentCount} of ${paymentsToEmail.length} selected invoices.`)
+        return
+      }
+      sentCount++
+    }
+
+    toast.success(`Email reminders sent to ${sentCount} invoice${sentCount > 1 ? "s" : ""}.`)
   }
 
   const applyFilters = () => {
@@ -270,6 +359,10 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
 
     if (emailSentFilter !== "all") {
       filtered = filtered.filter(payment => payment.emailStatus === emailSentFilter)
+    }
+
+    if (invoiceStatusFilter !== "all") {
+      filtered = filtered.filter(payment => payment.invoiceStatus === invoiceStatusFilter)
     }
 
     if (gradeFilter !== "all") {
@@ -295,6 +388,7 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
   const clearFilters = () => {
     setSearchTerm("")
     setEmailSentFilter("all")
+    setInvoiceStatusFilter("all")
     setGradeFilter("all")
     setSchoolLevelFilter("all")
     setDateFrom(null)
@@ -306,6 +400,17 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
   const handleItemsPerPageChange = (value: string) => {
     setItemsPerPage(parseInt(value))
     setCurrentPage(1) // Reset to first page when changing items per page
+  }
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // Toggle direction if same field
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+    } else {
+      // Set new field with ascending direction
+      setSortField(field)
+      setSortDirection("asc")
+    }
   }
 
   const exportData = () => {
@@ -332,8 +437,8 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
       `Total Amount: ฿${totalAmount.toLocaleString()}`,
       '',
       'Applied Filters:',
-      `- Status: ${statusFilter === 'all' ? 'All Statuses' : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}`,
-      `- Payment Type: ${paymentTypeFilter === 'all' ? 'All Types' : paymentTypeFilter.charAt(0).toUpperCase() + paymentTypeFilter.slice(1)}`,
+      `- Invoice Status: ${invoiceStatusFilter === 'all' ? 'All Statuses' : invoiceStatusFilter.charAt(0).toUpperCase() + invoiceStatusFilter.slice(1)}`,
+      `- Email Sent: ${emailSentFilter === 'all' ? 'All' : emailSentFilter.charAt(0).toUpperCase() + emailSentFilter.slice(1)}`,
       `- Grade Level: ${gradeFilter === 'all' ? 'All Grades' : gradeFilter}`,
       `- Date Range: ${dateFrom ? format(dateFrom, 'yyyy-MM-dd') : 'No start date'} to ${dateTo ? format(dateTo, 'yyyy-MM-dd') : 'No end date'}`,
       `- Search Term: ${searchTerm || 'No search applied'}`,
@@ -389,18 +494,18 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     
-    if (link.download !== undefined) {
-      const url = URL.createObjectURL(blob)
-      link.setAttribute('href', url)
-      
-      // Generate filename with current date and filter info
-      const currentDate = format(new Date(), 'yyyy-MM-dd')
-      const paymentTypeText = paymentTypeFilter === 'all' ? 'all' : paymentTypeFilter
-      const statusText = statusFilter === 'all' ? 'all' : statusFilter
-      const gradeText = gradeFilter === 'all' ? 'all-grades' : gradeFilter.replace(/\s+/g, '-').toLowerCase()
-      
-      const filename = `payment-history-${type}-${paymentTypeText}-${statusText}-${gradeText}-${currentDate}.csv`
-      link.setAttribute('download', filename)
+      if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob)
+        link.setAttribute('href', url)
+        
+        // Generate filename with current date and filter info
+        const currentDate = format(new Date(), 'yyyy-MM-dd')
+        const invoiceStatusText = invoiceStatusFilter === 'all' ? 'all' : invoiceStatusFilter
+        const emailStatusText = emailSentFilter === 'all' ? 'all' : emailSentFilter
+        const gradeText = gradeFilter === 'all' ? 'all-grades' : gradeFilter.replace(/\s+/g, '-').toLowerCase()
+
+        const filename = `payment-history-${type}-${invoiceStatusText}-${emailStatusText}-${gradeText}-${currentDate}.csv`
+        link.setAttribute('download', filename)
       
       link.style.visibility = 'hidden'
       document.body.appendChild(link)
@@ -441,11 +546,68 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
   })
   const uniqueRooms = Array.from(new Set(payments.map(payment => payment.studentRoom))).sort()
 
+  // Sort payments
+  const sortedPayments = sortField ? [...filteredPayments].sort((a, b) => {
+    let aValue: any = a[sortField]
+    let bValue: any = b[sortField]
+
+    // Handle date sorting
+    if (sortField === "transactionDate") {
+      aValue = new Date(aValue).getTime()
+      bValue = new Date(bValue).getTime()
+    } else if (sortField === "studentGrade") {
+      // Handle Year Group sorting (Reception, Year 1, Year 2, etc.)
+      const getGradeNumber = (grade: string) => {
+        if (grade === "Reception") return 0
+        const match = grade.match(/Year (\d+)/)
+        return match ? parseInt(match[1]) : 999
+      }
+      aValue = getGradeNumber(aValue)
+      bValue = getGradeNumber(bValue)
+    } else if (typeof aValue === "string") {
+      aValue = aValue.toLowerCase()
+      bValue = bValue.toLowerCase()
+    }
+
+    if (aValue < bValue) return sortDirection === "asc" ? -1 : 1
+    if (aValue > bValue) return sortDirection === "asc" ? 1 : -1
+    return 0
+  }) : filteredPayments
+
   // Pagination calculations
-  const totalPages = Math.ceil(filteredPayments.length / itemsPerPage)
+  const totalPages = Math.ceil(sortedPayments.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const currentPagePayments = filteredPayments.slice(startIndex, endIndex)
+  const currentPagePayments = sortedPayments.slice(startIndex, endIndex)
+  const isCurrentPageFullySelected = currentPagePayments.length > 0 && currentPagePayments.every(payment => selectedInvoiceIds.has(payment.id))
+  const isCurrentPagePartiallySelected = currentPagePayments.some(payment => selectedInvoiceIds.has(payment.id)) && !isCurrentPageFullySelected
+
+  const toggleSelectCurrentPage = () => {
+    setSelectedInvoiceIds(prev => {
+      const next = new Set(prev)
+      if (isCurrentPageFullySelected) {
+        currentPagePayments.forEach(payment => next.delete(payment.id))
+      } else {
+        currentPagePayments.forEach(payment => next.add(payment.id))
+      }
+      return next
+    })
+  }
+
+  const handleInvoiceSelection = (invoiceId: string) => {
+    setSelectedInvoiceIds(prev => {
+      const next = new Set(prev)
+      if (next.has(invoiceId)) {
+        next.delete(invoiceId)
+      } else {
+        next.add(invoiceId)
+      }
+      return next
+    })
+  }
+
+  const selectedInvoicesCount = selectedInvoiceIds.size
+  const hasSelectedInvoices = selectedInvoicesCount > 0
 
   const downloadReceipt = (payment: PaymentRecord) => {
     // In a real app, this would generate and download a PDF receipt
@@ -475,10 +637,21 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
             {t('paymentHistory.description')}
           </p>
         </div>
-        <Button onClick={exportData} className="flex items-center gap-2">
-          <Download className="w-4 h-4" />
-          {t('paymentHistory.exportData')}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={handleBulkSendEmails}
+            disabled={!hasSelectedInvoices}
+          >
+            <Mail className="w-4 h-4" />
+            Send Reminder Emails{hasSelectedInvoices ? ` (${selectedInvoicesCount})` : ""}
+          </Button>
+          <Button onClick={exportData} className="flex items-center gap-2">
+            <Download className="w-4 h-4" />
+            {t('paymentHistory.exportData')}
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -506,7 +679,7 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
             </div>
 
             {/* Second Row: Main Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Email Sent</label>
                 <Select value={emailSentFilter} onValueChange={setEmailSentFilter}>
@@ -519,6 +692,21 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="not_sent">Not Sent</SelectItem>
                     <SelectItem value="failed">Failed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Invoice Status</label>
+                <Select value={invoiceStatusFilter} onValueChange={setInvoiceStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="unpaid">Unpaid</SelectItem>
+                    <SelectItem value="overdue">Overdue</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -638,11 +826,88 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{t('paymentHistory.invoiceNumber')}</TableHead>
-                <TableHead>{t('paymentHistory.student')}</TableHead>
+                <TableHead className="w-12">
+                  <Checkbox
+                    aria-label="Select all invoices on this page"
+                    checked={
+                      currentPagePayments.length === 0
+                        ? false
+                        : isCurrentPageFullySelected
+                          ? true
+                          : isCurrentPagePartiallySelected
+                            ? "indeterminate"
+                            : false
+                    }
+                    onCheckedChange={() => toggleSelectCurrentPage()}
+                    disabled={currentPagePayments.length === 0}
+                  />
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("invoiceNumber")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    {t('paymentHistory.invoiceNumber')}
+                    {sortField === "invoiceNumber" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("studentName")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    {t('paymentHistory.student')}
+                    {sortField === "studentName" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
                 <TableHead>{t('paymentHistory.parentName')}</TableHead>
-                <TableHead>{t('paymentHistory.grade')}</TableHead>
-                <TableHead>{t('paymentHistory.amount')}</TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("studentGrade")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    {t('paymentHistory.grade')}
+                    {sortField === "studentGrade" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("amount")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    {t('paymentHistory.amount')}
+                    {sortField === "amount" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("invoiceStatus")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    Invoice Status
+                    {sortField === "invoiceStatus" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
                 <TableHead>Email Sent</TableHead>
                 <TableHead>NAV Sync</TableHead>
                 <TableHead>{t('paymentHistory.actions')}</TableHead>
@@ -656,6 +921,13 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
                   key={payment.id}
                   className={isOverdue ? "bg-red-50 border-l-4 border-l-red-500" : ""}
                 >
+                  <TableCell className="w-12">
+                    <Checkbox
+                      aria-label={`Select ${payment.invoiceNumber}`}
+                      checked={selectedInvoiceIds.has(payment.id)}
+                      onCheckedChange={() => handleInvoiceSelection(payment.id)}
+                    />
+                  </TableCell>
                   <TableCell className="font-mono text-sm">
                     <div className="flex items-center gap-2">
                       {isOverdue && (
@@ -682,6 +954,23 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
                     <Badge variant="secondary">{payment.studentGrade}</Badge>
                   </TableCell>
                   <TableCell>฿{payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                  <TableCell>
+                    {payment.invoiceStatus === "paid" && (
+                      <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Paid</Badge>
+                    )}
+                    {payment.invoiceStatus === "unpaid" && (
+                      <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Unpaid</Badge>
+                    )}
+                    {payment.invoiceStatus === "overdue" && (
+                      <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Overdue</Badge>
+                    )}
+                    {payment.invoiceStatus === "cancelled" && (
+                      <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">Cancelled</Badge>
+                    )}
+                    {payment.invoiceStatus === "partial" && (
+                      <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Partial</Badge>
+                    )}
+                  </TableCell>
                   <TableCell>
                     {payment.emailStatus === "sent" && (
                       <div>

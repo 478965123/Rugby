@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog"
 import { Separator } from "./ui/separator"
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "./ui/pagination"
-import { CalendarIcon, Search, Download, Filter, Eye, Receipt, CreditCard, ChevronLeft, ChevronRight, Mail } from "lucide-react"
+import { CalendarIcon, Search, Download, Filter, Eye, Receipt, CreditCard, ChevronLeft, ChevronRight, Mail, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from "sonner"
 import { getPaymentChannelLabel } from "./StatusFilter"
@@ -183,6 +183,20 @@ export function ReceiptPageUpdated() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
+  // Sorting states
+  type SortField = "receiptNumber" | "studentName" | "studentGrade" | "amount" | "transactionDate"
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+    } else {
+      setSortField(field)
+      setSortDirection("asc")
+    }
+  }
+
   // Reset email counter at midnight
   const checkAndResetEmailCounter = () => {
     const today = new Date().toDateString()
@@ -299,11 +313,38 @@ export function ReceiptPageUpdated() {
     toast.success(`Receipt ${receipt.receiptNumber} downloaded`)
   }
 
+  // Sort receipts
+  const sortedReceipts = sortField ? [...filteredReceipts].sort((a, b) => {
+    let aValue: any = a[sortField]
+    let bValue: any = b[sortField]
+
+    if (sortField === "transactionDate") {
+      aValue = new Date(aValue).getTime()
+      bValue = new Date(bValue).getTime()
+    } else if (sortField === "studentGrade") {
+      // Handle Year Group sorting (Reception, Year 1, Year 2, etc.)
+      const getGradeNumber = (grade: string) => {
+        if (grade === "Reception") return 0
+        const match = grade.match(/Year (\d+)/)
+        return match ? parseInt(match[1]) : 999
+      }
+      aValue = getGradeNumber(aValue)
+      bValue = getGradeNumber(bValue)
+    } else if (typeof aValue === "string") {
+      aValue = aValue.toLowerCase()
+      bValue = bValue.toLowerCase()
+    }
+
+    if (aValue < bValue) return sortDirection === "asc" ? -1 : 1
+    if (aValue > bValue) return sortDirection === "asc" ? 1 : -1
+    return 0
+  }) : filteredReceipts
+
   // Pagination logic
-  const totalPages = Math.ceil(filteredReceipts.length / itemsPerPage)
+  const totalPages = Math.ceil(sortedReceipts.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const currentPageReceipts = filteredReceipts.slice(startIndex, endIndex)
+  const currentPageReceipts = sortedReceipts.slice(startIndex, endIndex)
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
@@ -314,6 +355,39 @@ export function ReceiptPageUpdated() {
     setCurrentPage(1)
   }
 
+  const exportData = () => {
+    const csvContent = [
+      // Header
+      ['Receipt Number', 'Invoice Number', 'Student Name', 'Student ID', 'Grade', 'Parent Name', 'Parent Email', 'Amount', 'Payment Channel', 'Transaction Date', 'Email Status', 'NAV Sync Status'].join(','),
+      // Data rows
+      ...filteredReceipts.map(receipt => [
+        receipt.receiptNumber,
+        receipt.invoiceNumber,
+        receipt.studentName,
+        receipt.studentId,
+        receipt.studentGrade,
+        receipt.payerName,
+        receipt.parentEmail,
+        receipt.amount,
+        receipt.paymentChannel,
+        format(receipt.transactionDate, 'yyyy-MM-dd'),
+        receipt.emailStatus || 'not_sent',
+        receipt.navSyncStatus || '-'
+      ].join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `receipts-${format(new Date(), 'yyyy-MM-dd')}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    toast.success('Receipt data exported successfully')
+  }
+
   const grades = ["Reception", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6", "Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12"]
 
   const emailPercentage = (emailsSentToday / DAILY_EMAIL_LIMIT) * 100
@@ -322,11 +396,17 @@ export function ReceiptPageUpdated() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Receipt</h2>
-        <p className="text-muted-foreground">
-          View receipt records and transaction details
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Receipt</h2>
+          <p className="text-muted-foreground">
+            View receipt records and transaction details
+          </p>
+        </div>
+        <Button onClick={exportData} className="flex items-center gap-2">
+          <Download className="w-4 h-4" />
+          Export Data
+        </Button>
       </div>
 
       {/* Filters */}
@@ -489,13 +569,73 @@ export function ReceiptPageUpdated() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Receipt Number</TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("receiptNumber")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    Receipt Number
+                    {sortField === "receiptNumber" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
                 <TableHead>Invoice Number</TableHead>
-                <TableHead>{t('paymentHistory.student')}</TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("studentName")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    {t('paymentHistory.student')}
+                    {sortField === "studentName" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
                 <TableHead>{t('paymentHistory.parentName')}</TableHead>
-                <TableHead>{t('paymentHistory.grade')}</TableHead>
-                <TableHead>{t('paymentHistory.amount')}</TableHead>
-                <TableHead>Payment Date</TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("studentGrade")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    {t('paymentHistory.grade')}
+                    {sortField === "studentGrade" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("amount")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    {t('paymentHistory.amount')}
+                    {sortField === "amount" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("transactionDate")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    Payment Date
+                    {sortField === "transactionDate" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
                 <TableHead>Email Sent</TableHead>
                 <TableHead>NAV Sync</TableHead>
                 <TableHead>{t('paymentHistory.actions')}</TableHead>

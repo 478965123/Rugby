@@ -5,12 +5,13 @@ import { Input } from "./ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table"
 import { Badge } from "./ui/badge"
+import { Checkbox } from "./ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog"
 import { Separator } from "./ui/separator"
 import { Calendar } from "./ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { Textarea } from "./ui/textarea"
-import { Search, Filter, Eye, Plus, Download, Mail, CalendarIcon, Coins, FileText, AlertCircle, CheckCircle, Clock, RefreshCw, Trash2, Edit, X, Upload, Users, User, FileSpreadsheet } from "lucide-react"
+import { Search, Filter, Eye, Plus, Download, Mail, CalendarIcon, Coins, FileText, AlertCircle, CheckCircle, Clock, RefreshCw, Trash2, Edit, X, Upload, Users, User, FileSpreadsheet, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { ViewModal } from "./ViewModal"
 import { format } from "date-fns"
 import { toast } from "sonner@2.0.3"
@@ -306,6 +307,47 @@ export function InvoiceManagement({ onNavigateToSubPage, onNavigateToView }: Inv
     amount: "",
     discountPercent: ""
   })
+
+  // Multi-select states
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([])
+
+  // Sorting states
+  type SortField = "invoiceNumber" | "studentName" | "studentGrade" | "finalAmount" | "status" | "dueDate"
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+    } else {
+      setSortField(field)
+      setSortDirection("asc")
+    }
+  }
+
+  // Multi-select handlers
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedInvoiceIds(filteredInvoices.map(inv => inv.id))
+    } else {
+      setSelectedInvoiceIds([])
+    }
+  }
+
+  const handleSelectInvoice = (invoiceId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedInvoiceIds([...selectedInvoiceIds, invoiceId])
+    } else {
+      setSelectedInvoiceIds(selectedInvoiceIds.filter(id => id !== invoiceId))
+    }
+  }
+
+  const handleBulkSendEmail = () => {
+    const selectedInvoices = invoices.filter(inv => selectedInvoiceIds.includes(inv.id))
+    toast.success(`Sending emails for ${selectedInvoices.length} invoices...`)
+    // In real app, this would call an API to send emails
+    setSelectedInvoiceIds([])
+  }
 
   const applyFilters = () => {
     let filtered = invoices
@@ -791,19 +833,127 @@ export function InvoiceManagement({ onNavigateToSubPage, onNavigateToView }: Inv
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Invoice Number</TableHead>
-                <TableHead>Student</TableHead>
-                <TableHead>Grade</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={selectedInvoiceIds.length === filteredInvoices.length && filteredInvoices.length > 0}
+                    onCheckedChange={handleSelectAll}
+                  />
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("invoiceNumber")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    Invoice Number
+                    {sortField === "invoiceNumber" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("studentName")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    Student
+                    {sortField === "studentName" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("studentGrade")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    Grade
+                    {sortField === "studentGrade" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("finalAmount")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    Amount
+                    {sortField === "finalAmount" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("status")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    Status
+                    {sortField === "status" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
                 <TableHead>Issue Date</TableHead>
-                <TableHead>Due Date</TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("dueDate")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    Due Date
+                    {sortField === "dueDate" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredInvoices.map((invoice) => (
+              {(sortField ? [...filteredInvoices].sort((a, b) => {
+                let aValue: any = a[sortField]
+                let bValue: any = b[sortField]
+
+                if (sortField === "dueDate") {
+                  aValue = new Date(aValue).getTime()
+                  bValue = new Date(bValue).getTime()
+                } else if (sortField === "studentGrade") {
+                  // Handle Year Group sorting (Reception, Year 1, Year 2, etc.)
+                  const getGradeNumber = (grade: string) => {
+                    if (grade === "Reception") return 0
+                    const match = grade.match(/Year (\d+)/)
+                    return match ? parseInt(match[1]) : 999
+                  }
+                  aValue = getGradeNumber(aValue)
+                  bValue = getGradeNumber(bValue)
+                } else if (typeof aValue === "string") {
+                  aValue = aValue.toLowerCase()
+                  bValue = bValue.toLowerCase()
+                }
+
+                if (aValue < bValue) return sortDirection === "asc" ? -1 : 1
+                if (aValue > bValue) return sortDirection === "asc" ? 1 : -1
+                return 0
+              }) : filteredInvoices).map((invoice) => (
                 <TableRow key={invoice.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedInvoiceIds.includes(invoice.id)}
+                      onCheckedChange={(checked) => handleSelectInvoice(invoice.id, checked as boolean)}
+                    />
+                  </TableCell>
                   <TableCell className="font-mono text-sm">
                     {invoice.invoiceNumber}
                   </TableCell>

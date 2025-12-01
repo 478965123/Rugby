@@ -10,7 +10,7 @@ import { Calendar } from "./ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog"
 import { Separator } from "./ui/separator"
-import { CalendarIcon, Search, Filter, Eye, CreditCard, ChevronLeft, ChevronRight } from "lucide-react"
+import { CalendarIcon, Search, Filter, Eye, CreditCard, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Download } from "lucide-react"
 import { format } from "date-fns"
 
 interface PaymentTransaction {
@@ -126,6 +126,20 @@ export function PaymentTransactions() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
+  // Sorting states
+  type SortField = "invoiceNumber" | "studentName" | "studentGrade" | "amount" | "paymentStatus" | "transactionDate"
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+    } else {
+      setSortField(field)
+      setSortDirection("asc")
+    }
+  }
+
   const applyFilters = () => {
     let filtered = transactions
 
@@ -212,11 +226,71 @@ export function PaymentTransactions() {
     }
   }
 
+  // Sort transactions
+  const sortedTransactions = sortField ? [...filteredTransactions].sort((a, b) => {
+    let aValue: any = a[sortField]
+    let bValue: any = b[sortField]
+
+    if (sortField === "transactionDate") {
+      aValue = new Date(aValue).getTime()
+      bValue = new Date(bValue).getTime()
+    } else if (sortField === "studentGrade") {
+      // Handle Year Group sorting (Reception, Year 1, Year 2, etc.)
+      const getGradeNumber = (grade: string) => {
+        if (grade === "Reception") return 0
+        const match = grade.match(/Year (\d+)/)
+        return match ? parseInt(match[1]) : 999
+      }
+      aValue = getGradeNumber(aValue)
+      bValue = getGradeNumber(bValue)
+    } else if (typeof aValue === "string") {
+      aValue = aValue.toLowerCase()
+      bValue = bValue.toLowerCase()
+    }
+
+    if (aValue < bValue) return sortDirection === "asc" ? -1 : 1
+    if (aValue > bValue) return sortDirection === "asc" ? 1 : -1
+    return 0
+  }) : filteredTransactions
+
   // Pagination logic
-  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage)
+  const totalPages = Math.ceil(sortedTransactions.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const currentPageTransactions = filteredTransactions.slice(startIndex, endIndex)
+  const currentPageTransactions = sortedTransactions.slice(startIndex, endIndex)
+
+  const exportData = () => {
+    const csvContent = [
+      // Header
+      ['Invoice No.', 'Student Name', 'Student ID', 'Year Group', 'Parent Email', 'Payment Channel', 'Payment Status', 'Amount', 'Fee', 'Total Amount', 'NAV Sync', 'Transaction Date', 'Reference Number'].join(','),
+      // Data rows
+      ...filteredTransactions.map(tx => [
+        tx.invoiceNumber,
+        tx.studentName,
+        tx.studentId,
+        tx.studentGrade,
+        tx.parentEmail,
+        tx.paymentChannel,
+        tx.paymentStatus,
+        tx.amount,
+        tx.fee,
+        tx.totalAmount,
+        tx.navSyncStatus || '-',
+        format(tx.transactionDate, 'yyyy-MM-dd HH:mm:ss'),
+        tx.referenceNumber
+      ].join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `payment-transactions-${format(new Date(), 'yyyy-MM-dd')}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 
   const grades = ["Reception", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6", "Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12"]
   const paymentChannels = ["Credit Card", "QR Payment", "Bank Counter", "Bank Transfer"]
@@ -224,11 +298,17 @@ export function PaymentTransactions() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Payment Transactions</h2>
-        <p className="text-muted-foreground">
-          View detailed payment transaction history and card information
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Payment Transactions</h2>
+          <p className="text-muted-foreground">
+            View detailed payment transaction history and card information
+          </p>
+        </div>
+        <Button onClick={exportData} className="flex items-center gap-2">
+          <Download className="w-4 h-4" />
+          Export Data
+        </Button>
       </div>
 
       {/* Filters */}
@@ -409,16 +489,88 @@ export function PaymentTransactions() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Invoice No.</TableHead>
-                <TableHead>Student</TableHead>
-                <TableHead>Year Group</TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("invoiceNumber")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    Invoice No.
+                    {sortField === "invoiceNumber" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("studentName")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    Student
+                    {sortField === "studentName" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("studentGrade")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    Year Group
+                    {sortField === "studentGrade" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
                 <TableHead>Parent Email</TableHead>
                 <TableHead>Payment Channel</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Amount</TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("paymentStatus")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    Status
+                    {sortField === "paymentStatus" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("amount")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    Amount
+                    {sortField === "amount" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
                 <TableHead>Fee</TableHead>
                 <TableHead>NAV Sync</TableHead>
-                <TableHead>Transaction Date</TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort("transactionDate")}
+                    className="flex items-center gap-1 hover:text-foreground"
+                  >
+                    Transaction Date
+                    {sortField === "transactionDate" ? (
+                      sortDirection === "asc" ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-50" />
+                    )}
+                  </button>
+                </TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
