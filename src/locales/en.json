@@ -228,9 +228,9 @@
       "external": "External"
     },
     "schoolLevels": {
-      "nk": "NK",
-      "primary": "Primary",
-      "secondary": "Secondary"
+      "preprep": "Preprep",
+      "prep": "Prep",
+      "senior": "Senior"
     }
   },
   "schoolSettings": {

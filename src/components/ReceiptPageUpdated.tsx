@@ -24,7 +24,7 @@ interface ReceiptRecord {
   studentId: string
   studentGrade: string
   studentRoom: string
-  schoolLevel: "nk" | "primary" | "secondary"
+  schoolLevel: "preprep" | "prep" | "senior"
   amount: number
   paymentType: "yearly" | "termly"
   paymentMethod: string
@@ -44,7 +44,7 @@ interface ReceiptRecord {
 
 // Generate mock receipts data
 const generateMockReceipts = (): ReceiptRecord[] => {
-  const grades = ["Reception", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6", "Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12"]
+  const grades = ["Pre-nursery", "Nursery", "Reception", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6", "Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12", "Year 13"]
   const rooms = ["A", "B", "C", "D", "E", "F", "G", "H"]
   const firstNames = ["John", "Sarah", "Mike", "Lisa", "David", "Emma", "James", "Sophia", "William", "Olivia", "Benjamin", "Ava", "Lucas", "Isabella", "Henry", "Mia", "Alexander", "Charlotte", "Mason", "Amelia", "Ethan", "Harper", "Daniel", "Evelyn", "Matthew", "Abigail", "Jackson", "Emily", "Sebastian", "Elizabeth", "Jack", "Sofia", "Aiden", "Avery", "Owen", "Ella", "Samuel", "Madison", "Gabriel", "Scarlett", "Carter", "Victoria", "Wyatt", "Aria", "Jayden", "Grace", "John", "Chloe", "Luke", "Camila", "Anthony", "Penelope", "Isaac", "Riley"]
   const lastNames = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin", "Lee", "Perez", "Thompson", "White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson", "Walker", "Young", "Allen", "King", "Wright", "Scott", "Torres", "Nguyen", "Hill", "Flores", "Green", "Adams", "Nelson", "Baker", "Hall", "Rivera", "Campbell", "Mitchell", "Carter", "Roberts"]
@@ -61,15 +61,18 @@ const generateMockReceipts = (): ReceiptRecord[] => {
     const room = rooms[Math.floor(Math.random() * rooms.length)]
 
     // Determine school level based on grade
-    let schoolLevel: "nk" | "primary" | "secondary"
-    if (grade === "Reception") {
-      schoolLevel = "nk"
+    // Preprep: Pre-nursery to Year 2
+    // Prep: Year 3 to Year 8
+    // Senior: Year 9 to Year 13
+    let schoolLevel: "preprep" | "prep" | "senior"
+    if (grade === "Pre-nursery" || grade === "Nursery" || grade === "Reception" || grade === "Year 1" || grade === "Year 2") {
+      schoolLevel = "preprep"
     } else {
       const yearNumber = parseInt(grade.replace("Year ", ""))
-      if (yearNumber <= 6) {
-        schoolLevel = "primary"
+      if (yearNumber >= 3 && yearNumber <= 8) {
+        schoolLevel = "prep"
       } else {
-        schoolLevel = "secondary"
+        schoolLevel = "senior"
       }
     }
 
@@ -388,7 +391,7 @@ export function ReceiptPageUpdated() {
     toast.success('Receipt data exported successfully')
   }
 
-  const grades = ["Reception", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6", "Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12"]
+  const grades = ["Pre-nursery", "Nursery", "Reception", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6", "Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12", "Year 13"]
 
   const emailPercentage = (emailsSentToday / DAILY_EMAIL_LIMIT) * 100
   const remainingEmails = DAILY_EMAIL_LIMIT - emailsSentToday
@@ -461,9 +464,9 @@ export function ReceiptPageUpdated() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('paymentHistory.allSchoolLevels')}</SelectItem>
-                  <SelectItem value="nk">{t('paymentHistory.schoolLevels.nk')}</SelectItem>
-                  <SelectItem value="primary">{t('paymentHistory.schoolLevels.primary')}</SelectItem>
-                  <SelectItem value="secondary">{t('paymentHistory.schoolLevels.secondary')}</SelectItem>
+                  <SelectItem value="preprep">{t('paymentHistory.schoolLevels.preprep')}</SelectItem>
+                  <SelectItem value="prep">{t('paymentHistory.schoolLevels.prep')}</SelectItem>
+                  <SelectItem value="senior">{t('paymentHistory.schoolLevels.senior')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
