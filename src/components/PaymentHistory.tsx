@@ -538,14 +538,20 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
 
   // Get unique grades and rooms for filter dropdown
   const uniqueGrades = Array.from(new Set(payments.map(payment => payment.studentGrade))).sort((a, b) => {
-    // Handle Reception first
-    if (a === "Reception") return -1
-    if (b === "Reception") return 1
+    // Define the correct order
+    const gradeOrder = ["Pre-nursery", "Nursery", "Reception", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6", "Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12", "Year 13"]
+    const indexA = gradeOrder.indexOf(a)
+    const indexB = gradeOrder.indexOf(b)
 
-    // Extract year numbers and compare numerically
-    const yearA = parseInt(a.replace("Year ", ""))
-    const yearB = parseInt(b.replace("Year ", ""))
-    return yearA - yearB
+    // If both grades are in the order array, sort by their position
+    if (indexA !== -1 && indexB !== -1) {
+      return indexA - indexB
+    }
+    // If only one is in the array, prioritize it
+    if (indexA !== -1) return -1
+    if (indexB !== -1) return 1
+    // If neither is in the array, maintain alphabetical order
+    return a.localeCompare(b)
   })
   const uniqueRooms = Array.from(new Set(payments.map(payment => payment.studentRoom))).sort()
 
@@ -559,8 +565,10 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
       aValue = new Date(aValue).getTime()
       bValue = new Date(bValue).getTime()
     } else if (sortField === "studentGrade") {
-      // Handle Year Group sorting (Reception, Year 1, Year 2, etc.)
+      // Handle Year Group sorting (Pre-nursery, Nursery, Reception, Year 1, Year 2, etc.)
       const getGradeNumber = (grade: string) => {
+        if (grade === "Pre-nursery") return -2
+        if (grade === "Nursery") return -1
         if (grade === "Reception") return 0
         const match = grade.match(/Year (\d+)/)
         return match ? parseInt(match[1]) : 999

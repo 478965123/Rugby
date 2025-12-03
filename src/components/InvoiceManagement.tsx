@@ -175,8 +175,8 @@ const mockTemplates: InvoiceTemplate[] = [
 ]
 
 const grades = [
-  "Reception", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", 
-  "Year 6", "Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12"
+  "Pre-nursery", "Nursery", "Reception", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5",
+  "Year 6", "Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12", "Year 13"
 ]
 
 const mockStudents = [
@@ -930,8 +930,10 @@ export function InvoiceManagement({ onNavigateToSubPage, onNavigateToView }: Inv
                   aValue = new Date(aValue).getTime()
                   bValue = new Date(bValue).getTime()
                 } else if (sortField === "studentGrade") {
-                  // Handle Year Group sorting (Reception, Year 1, Year 2, etc.)
+                  // Handle Year Group sorting (Pre-nursery, Nursery, Reception, Year 1, Year 2, etc.)
                   const getGradeNumber = (grade: string) => {
+                    if (grade === "Pre-nursery") return -2
+                    if (grade === "Nursery") return -1
                     if (grade === "Reception") return 0
                     const match = grade.match(/Year (\d+)/)
                     return match ? parseInt(match[1]) : 999
