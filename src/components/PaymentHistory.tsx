@@ -186,6 +186,7 @@ interface PaymentHistoryProps {
 }
 
 export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
+  console.log("🔥 PaymentHistory component rendered!")
   const { t } = useTranslation()
   const [payments, setPayments] = useState<PaymentRecord[]>(mockPayments)
   const [filteredPayments, setFilteredPayments] = useState<PaymentRecord[]>(
@@ -537,22 +538,8 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
   }
 
   // Get unique grades and rooms for filter dropdown
-  const uniqueGrades = Array.from(new Set(payments.map(payment => payment.studentGrade))).sort((a, b) => {
-    // Define the correct order
-    const gradeOrder = ["Pre-nursery", "Nursery", "Reception", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6", "Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12", "Year 13"]
-    const indexA = gradeOrder.indexOf(a)
-    const indexB = gradeOrder.indexOf(b)
-
-    // If both grades are in the order array, sort by their position
-    if (indexA !== -1 && indexB !== -1) {
-      return indexA - indexB
-    }
-    // If only one is in the array, prioritize it
-    if (indexA !== -1) return -1
-    if (indexB !== -1) return 1
-    // If neither is in the array, maintain alphabetical order
-    return a.localeCompare(b)
-  })
+  const grades = ["Pre-nursery", "Nursery", "Reception", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6", "Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12", "Year 13"]
+  console.log("PaymentHistory grades:", grades)
   const uniqueRooms = Array.from(new Set(payments.map(payment => payment.studentRoom))).sort()
 
   // Sort payments
@@ -745,7 +732,7 @@ export function PaymentHistory({ type = "tuition" }: PaymentHistoryProps) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{t('paymentHistory.allGrades')}</SelectItem>
-                    {uniqueGrades.map((grade) => (
+                    {grades.map((grade) => (
                       <SelectItem key={grade} value={grade}>{grade}</SelectItem>
                     ))}
                   </SelectContent>

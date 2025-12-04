@@ -35,7 +35,7 @@ interface PaymentTransaction {
 
 // Generate mock payment transactions
 const generateMockTransactions = (): PaymentTransaction[] => {
-  const grades = ["Reception", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6", "Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12"]
+  const grades = ["Pre-nursery", "Nursery", "Reception", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6", "Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12", "Year 13"]
   const firstNames = ["John", "Sarah", "Mike", "Lisa", "David", "Emma", "James", "Sophia", "William", "Olivia"]
   const lastNames = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez"]
   const paymentChannels = ["Credit Card", "QR Payment", "Bank Counter", "Bank Transfer"]
@@ -292,7 +292,7 @@ export function PaymentTransactions() {
     document.body.removeChild(link)
   }
 
-  const grades = ["Reception", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6", "Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12"]
+  const grades = ["Pre-nursery", "Nursery", "Reception", "Year 1", "Year 2", "Year 3", "Year 4", "Year 5", "Year 6", "Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12", "Year 13"]
   const paymentChannels = ["Credit Card", "QR Payment", "Bank Counter", "Bank Transfer"]
 
   return (
